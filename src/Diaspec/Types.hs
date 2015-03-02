@@ -23,7 +23,7 @@ data ContextInteraction = WhenRequired Get
 
 data ControllerInteraction = WhenContext String String
                              deriving (Eq, Show)
-                                     
+
 type Get = Maybe String
 
 data Publish = AlwaysPublish

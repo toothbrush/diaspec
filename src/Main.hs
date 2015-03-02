@@ -1,3 +1,5 @@
+-- Copyright 2015 © Paul van der Walt <paul.vanderwalt@inria.fr>
+--
 module Main where
 
 import Diaspec.Frontend.Parser (parseGrammar)

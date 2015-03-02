@@ -1,9 +1,11 @@
 {
+-- Copyright 2015 © Paul van der Walt <paul.vanderwalt@inria.fr>
+
 module Diaspec.Frontend.Parser where
 import Diaspec.Frontend.Tokens
 import Diaspec.Frontend.Lexer
 import Diaspec.Types
-  
+
 }
 
 %name parseGrammar

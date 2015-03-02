@@ -1,4 +1,6 @@
 {
+-- Copyright 2015 © Paul van der Walt <paul.vanderwalt@inria.fr>
+
 module Diaspec.Frontend.Lexer (alexScanTokens) where
 import Diaspec.Frontend.Tokens
 import Diaspec.Types (Type (..))
