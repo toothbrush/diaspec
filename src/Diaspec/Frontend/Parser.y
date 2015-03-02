@@ -1,8 +1,8 @@
 {
-module Parser where
-import DiaGrammar
-import Tokens
-import Lexer
+module Diaspec.Frontend.Parser where
+import Diaspec.Frontend.Tokens
+import Diaspec.Frontend.Lexer
+import Diaspec.Types
   
 }
 

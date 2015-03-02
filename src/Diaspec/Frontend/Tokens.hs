@@ -1,5 +1,5 @@
-module Tokens where
-import DiaGrammar (Type (..))
+module Diaspec.Frontend.Tokens where
+import Diaspec.Types (Type (..))
 
 -- The tokens, in a type:
 data Token = TokContext	

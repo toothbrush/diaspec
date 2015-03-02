@@ -1,4 +1,6 @@
-module DiaGrammar where
+-- Copyright 2015 © Paul van der Walt <paul.vanderwalt@inria.fr>
+
+module Diaspec.Types where
 
 -- possible types for our components
 data Type = Bool

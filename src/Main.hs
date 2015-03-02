@@ -1,6 +1,9 @@
 module Main where
 
-import Parser (parseGrammar)
-import Lexer  (alexScanTokens)
+import Diaspec.Frontend.Parser (parseGrammar)
+import Diaspec.Frontend.Lexer  (alexScanTokens)
+import Diaspec.Backend.PrintDiaspec
 
-main = getContents >>= print . parseGrammar . alexScanTokens
+import UU.PPrint (putDoc)
+
+main = getContents >>= putDoc . prettyDia . parseGrammar . alexScanTokens

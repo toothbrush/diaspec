@@ -1,7 +1,7 @@
 {
-module Lexer (alexScanTokens) where
-import DiaGrammar (Type (..))
-import Tokens
+module Diaspec.Frontend.Lexer (alexScanTokens) where
+import Diaspec.Frontend.Tokens
+import Diaspec.Types (Type (..))
 }
 
 %wrapper "basic"
