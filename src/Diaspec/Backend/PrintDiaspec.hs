@@ -12,14 +12,15 @@ module Diaspec.Backend.PrintDiaspec where
 
 -- Copyright 2015 © Paul van der Walt <paul.vanderwalt@inria.fr>
 
---import UU.PPrint
 import UU.Pretty hiding (pp)
 import Diaspec.Backend.AG
+import Diaspec.Sort ()
+import Data.List (sort)
 
 -- give this a name for exporting.
 prettyDia :: Specification -> PP_Doc
 prettyDia s = text "" >-< text "-- Auto generated specification" >-<
-              text "" >-< format s
+              text "" >-< format (sort s)
   where format = formatWith (\d -> 
                               ppDia_Syn_Declaration (wrap_Declaration (sem_Declaration d) inh_Declaration))
 
@@ -32,9 +33,6 @@ formatWith f = foldr (\d doc -> f d >-< text "" >-< doc) empty
 prettyRacket :: Specification -> PP_Doc
 prettyRacket s = text "" >-< text ";; Auto generated specification" >-<
                  text "#lang s-exp \"diaspec.rkt\"" >-<
-                 text "" >-< format s
+                 text "" >-< format (sort s)
         where format = formatWith (\d ->
                                     ppRacket_Syn_Declaration (wrap_Declaration (sem_Declaration d) inh_Declaration))
-
-
--- TODO define sort on Declaration. act/src first then by name etc.
