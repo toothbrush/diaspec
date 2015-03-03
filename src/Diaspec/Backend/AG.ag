@@ -1,0 +1,14 @@
+
+-------------------------------------------------------------------------------
+--
+-- Attribute grammar for Diaspec.
+-- 
+-- Copyright 2015 © Paul van der Walt <paul.vanderwalt@inria.fr>
+--
+-------------------------------------------------------------------------------
+
+module {Diaspec.Backend.AG} {} {}
+
+include "AG/Base.ag"
+include "AG/Printing.ag"
+

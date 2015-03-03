@@ -1,8 +1,9 @@
--- Copyright 2015 © Paul van der Walt <paul.vanderwalt@inria.fr>
+imports
+{
+--
+}
 
-module Diaspec.Types where
-
--- possible types for our components
+ -- possible types for our components
 data Type = Bool
           | Int
           | String

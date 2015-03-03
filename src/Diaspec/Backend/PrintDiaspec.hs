@@ -1,3 +1,6 @@
+-- i know i know
+{-# OPTIONS_GHC -fno-warn-orphans #-}
+
 {-  # LANGUAGE TypeSynonymInstances,
              FlexibleInstances #   -}
 module Diaspec.Backend.PrintDiaspec where
@@ -16,10 +19,10 @@ import Diaspec.Types
 
   --TODO
 instance Pretty Declaration where
-  pretty (Source n t) = string "source"
-  pretty (Action n t) = string "action"
-  pretty (Context n t i) = string "context"
-  pretty (Controller n i) = string "controller"
+  pretty (Source     _ _)   = string "source"
+  pretty (Action     _ _)   = string "action"
+  pretty (Context    _ _ _) = string "context"
+  pretty (Controller _ _)   = string "controller"
 
 -- give this a name for exporting.
 prettyDia :: Specification -> Doc
