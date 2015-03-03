@@ -9,28 +9,26 @@ import Diaspec.Frontend.Lexer  (alexScanTokens)
 import Diaspec.Backend.AG (Specification (..))
 import Diaspec.Backend.PrintDiaspec
 
-import UU.Pretty (render, PP_Doc (..))
+import UU.Pretty (disp, render, PP_Doc (..))
 
 import System.Console.CmdArgs
 
 data DiaspecCompiler = Pretty { inFile :: FilePath
-                              , outFile :: FilePath}
+                              , outFile :: Maybe FilePath}
                      | Java   { inFile :: FilePath
                               , outDir :: FilePath}
                      | Racket { inFile :: FilePath
-                              , outFile :: FilePath}
+                              , outFile :: Maybe FilePath}
                      deriving (Show, Data, Typeable)
 
--- outFlags x = x &= help "Destination directory" &= typDir
-
-pretty = Pretty { inFile = def &= argPos 0 &= typFile  -- &= help "Specification file to process."
+pretty = Pretty { inFile = "-" &= argPos 0 &= typFile  -- &= help "Specification file to process."
                 , outFile = outFileHelp} &= auto
-java   = Java   { inFile = def &= argPos 0 &= typFile  -- &= help "Specification file to process."
-                , outDir = def &= argPos 1  &= typDir}
-racket = Racket { inFile = def &= argPos 0 &= typFile  -- &= help "Specification file to process."
+java   = Java   { inFile = "-" &= argPos 0 &= typFile  -- &= help "Specification file to process."
+                , outDir = def &= argPos 1 &= typDir}
+racket = Racket { inFile = "-" &= argPos 0 &= typFile  -- &= help "Specification file to process."
                 , outFile = outFileHelp}
 
-outFileHelp = "-" &= help "Output file. Default to STDOUT." &= typFile
+outFileHelp = Nothing &= help "Output file. Default to STDOUT." &= typFile
 
 main :: IO ()
 main = do
@@ -46,7 +44,7 @@ main = do
        handlePretty prettyRacket infile out
    (_)          -> undefined
 
-handlePretty :: (Specification -> PP_Doc) -> FilePath -> FilePath -> IO ()
+handlePretty :: (Specification -> PP_Doc) -> FilePath -> Maybe FilePath -> IO ()
 handlePretty pf i o = do
   spec <- case i of
            "-" -> do putStrLn "Reading from STDIN."
@@ -55,3 +53,8 @@ handlePretty pf i o = do
                      readFile i
   let res = (pf . parseGrammar . alexScanTokens) spec
   render res 80
+  case o of
+    Nothing -> return ()
+    Just fname -> do
+      writeFile fname ((disp res 80) "")
+      putStrLn $ "---\n\nWriting to file " ++ show fname ++ "."
