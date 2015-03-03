@@ -2,7 +2,6 @@
 -- Copyright 2015 © Paul van der Walt <paul.vanderwalt@inria.fr>
 
 module Diaspec.Frontend.Parser where
-import Diaspec.Frontend.Tokens
 import Diaspec.Frontend.Lexer
 import Diaspec.Types
 
@@ -10,25 +9,25 @@ import Diaspec.Types
 
 %name parseGrammar
 %tokentype { Token }
-%error { parseError }
+%error { happyError }
 
 -- define all possible tokens, aliases
 %token 
-      context         { TokContext       }
-      controller      { TokController    }
-      source          { TokSource        }
-      action          { TokAction        }
-      type            { TokTy $$         }
-      whenrequired    { TokWhenRequired  }
-      whenprovided    { TokWhenProvided  }
-      alwayspublish   { TokAlwaysPublish }
-      maybepublish    { TokMaybePublish  }
-      as              { TokAs            }
-      get             { TokGet           }
-      do              { TokDo            }
-      '{'             { TokOpenBr        }
-      '}'             { TokCloseBr       }
-      var             { TokVar $$        }
+      context         { TokContext       _    }
+      controller      { TokController    _    }
+      source          { TokSource        _    }
+      action          { TokAction        _    }
+      type            { TokTy            _ $$ }
+      whenrequired    { TokWhenRequired  _    }
+      whenprovided    { TokWhenProvided  _    }
+      alwayspublish   { TokAlwaysPublish _    }
+      maybepublish    { TokMaybePublish  _    }
+      as              { TokAs            _    }
+      get             { TokGet           _    }
+      do              { TokDo            _    }
+      '{'             { TokOpenBr        _    }
+      '}'             { TokCloseBr       _    }
+      var             { TokVar           _ $$ }
 
 -- a %% for no real reason
 
@@ -37,7 +36,7 @@ import Diaspec.Types
 -- production rules for the grammar
 
 prods :: { Specification }
-prods : Exp                    { [$1] }
+prods : Exp                    { [$1]    }
       | prods Exp              { $2 : $1 }
 
 Exp :: { Declaration }
@@ -62,9 +61,13 @@ Publish : alwayspublish { AlwaysPublish }
         | maybepublish  { MaybePublish  }
 
 {
-
--- TODO nicer error.
-parseError :: [Token] -> a
-parseError _ = error "Parse error"
+happyError :: [Token] -> a
+happyError tks = error ("Parse error at " ++ lcn ++ "\n")
+      where
+      lcn = case tks of
+              [] -> "end of file"
+              tk:_ -> "line " ++ show l ++ ", column " ++ show c
+                   where
+                      AlexPn _ l c = token_posn tk
 
 }

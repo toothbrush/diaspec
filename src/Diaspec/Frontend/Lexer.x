@@ -56,6 +56,20 @@ data Token = TokContext       AlexPosn
            deriving (Eq, Show)
 
 token_posn :: Token -> AlexPosn
-token_posn t = undefined
+token_posn (TokContext       p  ) = p
+token_posn (TokController    p  ) = p
+token_posn (TokSource        p  ) = p
+token_posn (TokAction        p  ) = p
+token_posn (TokTy            p _) = p
+token_posn (TokWhenRequired  p  ) = p
+token_posn (TokWhenProvided  p  ) = p
+token_posn (TokAlwaysPublish p  ) = p
+token_posn (TokMaybePublish  p  ) = p
+token_posn (TokAs            p  ) = p
+token_posn (TokGet           p  ) = p
+token_posn (TokDo            p  ) = p
+token_posn (TokOpenBr        p  ) = p
+token_posn (TokCloseBr       p  ) = p
+token_posn (TokVar           p _) = p
 
 }
