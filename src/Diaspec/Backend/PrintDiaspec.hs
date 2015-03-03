@@ -13,16 +13,17 @@ module Diaspec.Backend.PrintDiaspec where
 
 -- Copyright 2015 © Paul van der Walt <paul.vanderwalt@inria.fr>
 
-import UU.PPrint
+--import UU.PPrint
+import UU.Pretty
 import Diaspec.Backend.AG
 
-instance Pretty Declaration where
-  pretty d = ppDia_Syn_Declaration (wrap_Declaration (sem_Declaration d) inh_Declaration)
+instance PP Declaration where
+  pp d = ppDia_Syn_Declaration (wrap_Declaration (sem_Declaration d) inh_Declaration)
 
 -- give this a name for exporting.
-prettyDia :: Specification -> Doc
-prettyDia [] = string "[]"
-prettyDia (d: ds) = pretty (d:ds)
+prettyDia :: Specification -> PP_Doc
+prettyDia []      = text "[]"
+prettyDia (d: ds) = pp d >-< pp ds
 
 inh_Declaration :: Inh_Declaration
 inh_Declaration = Inh_Declaration {}

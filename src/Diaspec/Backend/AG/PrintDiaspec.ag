@@ -7,10 +7,10 @@
 ----------------------------------
 
 attr Declaration
-  syn ppDia :: {Doc}  -- pretty printing (multiline mode)
+  syn ppDia :: {PP_Doc}  -- pretty printing (multiline mode)
 
 sem Declaration
-  | Source      lhs.ppDia = string "source"
-  | Action      lhs.ppDia = string "action"
-  | Context     lhs.ppDia = string "context-bluh"
-  | Controller  lhs.ppDia = string "controller"
+  | Source      lhs.ppDia = text "source"
+  | Action      lhs.ppDia = text "action"
+  | Context     lhs.ppDia = text "context-bluh"
+  | Controller  lhs.ppDia = text "controller"

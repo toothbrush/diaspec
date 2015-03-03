@@ -1,6 +1,6 @@
 imports
 {
-import UU.PPrint
+import UU.Pretty
 }
 
  -- possible types for our components

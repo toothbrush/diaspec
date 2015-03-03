@@ -8,7 +8,7 @@ import Diaspec.Frontend.Parser (parseGrammar)
 import Diaspec.Frontend.Lexer  (alexScanTokens)
 import Diaspec.Backend.PrintDiaspec
 
-import UU.PPrint (putDoc)
+import UU.Pretty (render)
 
 import System.Console.CmdArgs
 
@@ -46,4 +46,5 @@ handlePretty i o = do
                      getContents
            _   -> do putStrLn ("Dealing with file: " ++ show i)
                      readFile i
-  (putDoc . prettyDia . parseGrammar . alexScanTokens) spec
+  let res = (prettyDia . parseGrammar . alexScanTokens) spec
+  render res 80
