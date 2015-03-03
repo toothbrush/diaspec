@@ -29,9 +29,9 @@ sem Declaration
   | Action      lhs.ppDia = text "action" >#< text @name >#< text "as" >#< @ty.ppDia
   | Context     lhs.ppDia = text "context" >#< text @name >#<
                                   text "as" >#< @ty.ppDia >#< "{" >-<
-				  @contr.ppDia >-< "}"
+				  (indent 4 @contr.ppDia) >-< "}"
   | Controller  lhs.ppDia = text "controller" >#< text @name >#< "{" >-<
-				  @contr.ppDia >-< "}"
+				  (indent 4 @contr.ppDia) >-< "}"
 
 
 sem Publish
@@ -48,7 +48,7 @@ sem ControllerInteraction
   | WhenContext     lhs.ppDia = text "when_provided" >#< text @name
                                 >-< text "do" >#< text @act
 sem ContextInteraction
-  | WhenRequired    lhs.ppDia = text "when_required" >#< @get.ppDia
+  | WhenRequired    lhs.ppDia = text "when_required" >-< @get.ppDia
   | WhenProvided    lhs.ppDia = text "when_provided" >#< text @name
                                 >-< @get.ppDia >-< @pub.ppDia
 
