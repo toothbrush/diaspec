@@ -1,5 +1,3 @@
 accept command line arguments and options
-pretty printing as simple diaspec
-printing as racket specification syntax
 output static verification rules (static analysis on heavily abstracted app, actually)
 figure out language-java and output the framework depending on the specifications
