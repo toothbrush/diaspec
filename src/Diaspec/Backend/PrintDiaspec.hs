@@ -22,8 +22,11 @@ instance PP Declaration where
 
 -- give this a name for exporting.
 prettyDia :: Specification -> PP_Doc
-prettyDia []      = text "[]"
-prettyDia (d: ds) = pp d >-< pp ds
+prettyDia s = text "" >-< text "-- Auto generated specification" >-<
+              text "" >-< format s
+  where format = foldr (\d doc -> pp d >-< text "" >-< doc) empty
 
 inh_Declaration :: Inh_Declaration
 inh_Declaration = Inh_Declaration {}
+
+-- TODO define sort on Declaration. act/src first then by name etc.

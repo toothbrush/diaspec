@@ -50,7 +50,10 @@ deriving instance Eq ContextInteraction
 deriving instance Show ContextInteraction
 
 deriving instance Eq Publish
-deriving instance Show Publish
+
+instance Show Publish where
+  show AlwaysPublish = "always_publish"
+  show MaybePublish  = "maybe_publish"
 
 deriving instance Eq ControllerInteraction
 deriving instance Show ControllerInteraction

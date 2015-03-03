@@ -9,8 +9,49 @@
 attr Declaration
   syn ppDia :: {PP_Doc}  -- pretty printing (multiline mode)
 
+attr Type
+  syn ppDia :: {PP_Doc}
+
+attr ContextInteraction
+  syn ppDia :: {PP_Doc}
+
+attr ControllerInteraction
+  syn ppDia :: {PP_Doc}
+
+attr Get
+  syn ppDia :: {PP_Doc}
+
+attr Publish
+  syn ppDia :: {PP_Doc}
+
 sem Declaration
-  | Source      lhs.ppDia = text "source"
-  | Action      lhs.ppDia = text "action"
-  | Context     lhs.ppDia = text "context-bluh"
-  | Controller  lhs.ppDia = text "controller"
+  | Source      lhs.ppDia = text "source" >#< text @name >#< text "as" >#< @ty.ppDia
+  | Action      lhs.ppDia = text "action" >#< text @name >#< text "as" >#< @ty.ppDia
+  | Context     lhs.ppDia = text "context" >#< text @name >#<
+                                  text "as" >#< @ty.ppDia >#< "{" >-<
+				  @contr.ppDia >-< "}"
+  | Controller  lhs.ppDia = text "controller" >#< text @name >#< "{" >-<
+				  @contr.ppDia >-< "}"
+
+
+sem Publish
+  | AlwaysPublish    lhs.ppDia = text $ show @self
+  | MaybePublish     lhs.ppDia = text $ show @self
+
+sem Type
+  | Bool    lhs.ppDia = text $ show @self
+  | Int     lhs.ppDia = text $ show @self
+  | Picture lhs.ppDia = text $ show @self
+  | String  lhs.ppDia = text $ show @self
+
+sem ControllerInteraction
+  | WhenContext     lhs.ppDia = text "when_provided" >#< text @name
+                                >-< text "do" >#< text @act
+sem ContextInteraction
+  | WhenRequired    lhs.ppDia = text "when_required" >#< @get.ppDia
+  | WhenProvided    lhs.ppDia = text "when_provided" >#< text @name
+                                >-< @get.ppDia >-< @pub.ppDia
+
+sem Get
+  | Nothing   lhs.ppDia = empty
+  | Just      lhs.ppDia = text "get" >#< text @just
