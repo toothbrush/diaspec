@@ -14,16 +14,15 @@ module Diaspec.Backend.PrintDiaspec where
 -- Copyright 2015 © Paul van der Walt <paul.vanderwalt@inria.fr>
 
 import UU.PPrint
+import Diaspec.Backend.AG
 
-import Diaspec.Types
-
-  --TODO
 instance Pretty Declaration where
-  pretty (Source     _ _)   = string "source"
-  pretty (Action     _ _)   = string "action"
-  pretty (Context    _ _ _) = string "context"
-  pretty (Controller _ _)   = string "controller"
+  pretty d = ppDia_Syn_Declaration (wrap_Declaration (sem_Declaration d) inh_Declaration)
 
 -- give this a name for exporting.
 prettyDia :: Specification -> Doc
-prettyDia = pretty
+prettyDia [] = string "[]"
+prettyDia (d: ds) = pretty (d:ds)
+
+inh_Declaration :: Inh_Declaration
+inh_Declaration = Inh_Declaration {}

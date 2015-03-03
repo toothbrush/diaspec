@@ -2,7 +2,7 @@
 -- Copyright 2015 © Paul van der Walt <paul.vanderwalt@inria.fr>
 
 module Diaspec.Frontend.Lexer (alexScanTokens, Token (..), AlexPosn (..), token_posn) where
-import Diaspec.Types (Type (..))
+import Diaspec.Backend.AG (Type (..))
 }
 
 %wrapper "posn"

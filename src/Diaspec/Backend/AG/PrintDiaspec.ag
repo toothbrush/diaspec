@@ -1,29 +1,16 @@
-module {Diaspec.Backend.AG.PrintAG}
-{} -- no exports
-{  -- imports
-import Diaspec.Types
+{
+-- import Diaspec.Types
 }
 
 ----------------------------------
 -- Pretty printing
 ----------------------------------
 
--- data Declaration
-   -- | Source      name  ::  { String}
-                 -- ty    ::  { Type}
-   -- | Action      name  ::  { String}
-     	         -- ty    ::  { Type}
-   -- | Context     name  ::  { String}
-      	         -- ty    ::  { Type}
-	         -- contr ::  { ContextInteraction}
-   -- | Controller  name  ::  { String}
-     		 -- contr ::  { ControllerInteraction}
-
 attr Declaration
-  syn ppML :: {Doc}  -- pretty printing (multiline mode)
+  syn ppDia :: {Doc}  -- pretty printing (multiline mode)
 
 sem Declaration
-  | Source      lhs.ppML = string "source"
-  | Action      lhs.ppML = string "action"
-  | Context     lhs.ppML = string "context"
-  | Controller  lhs.ppML = string "controller"
+  | Source      lhs.ppDia = string "source"
+  | Action      lhs.ppDia = string "action"
+  | Context     lhs.ppDia = string "context-bluh"
+  | Controller  lhs.ppDia = string "controller"

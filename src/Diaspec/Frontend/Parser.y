@@ -3,7 +3,7 @@
 
 module Diaspec.Frontend.Parser where
 import Diaspec.Frontend.Lexer
-import Diaspec.Types
+import Diaspec.Backend.AG
 
 }
 

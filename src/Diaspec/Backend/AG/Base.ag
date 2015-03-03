@@ -1,32 +1,57 @@
 imports
 {
---
+import UU.PPrint
 }
 
  -- possible types for our components
-data Type = Bool
-          | Int
-          | String
-          | Picture
-            deriving (Eq, Show)
+data Type
+     | Bool
+     | Int
+     | String
+     | Picture
 
 type Specification = [Declaration]
 
-data Declaration = Source String Type
-                 | Action String Type
-                 | Context String Type ContextInteraction
-                 | Controller String ControllerInteraction
-                   deriving (Eq, Show)
+data Declaration
+   | Source      name  :: String
+                 ty    :: Type
+   | Action      name  :: String
+                 ty    :: Type
+   | Context     name  :: String
+     	         ty    :: Type
+                 contr :: ContextInteraction
+   | Controller  name  :: String
+    		 contr :: ControllerInteraction
 
-data ContextInteraction = WhenRequired Get
-                        | WhenProvided String Get Publish
-                          deriving (Eq, Show)
+data ContextInteraction
+     | WhenRequired     get :: Get
+     | WhenProvided    name ::  String
+                        get :: Get
+		        pub :: Publish
 
-data ControllerInteraction = WhenContext String String
-                             deriving (Eq, Show)
+data ControllerInteraction
+     | WhenContext      name :: String
+                        act  :: String
 
-type Get = Maybe String
+type Get = maybe String
 
-data Publish = AlwaysPublish
-             | MaybePublish
-               deriving (Eq, Show)
+data Publish
+     | AlwaysPublish
+     | MaybePublish
+
+{
+deriving instance Eq Type
+deriving instance Show Type
+
+deriving instance Eq Declaration
+deriving instance Show Declaration
+
+deriving instance Eq ContextInteraction
+deriving instance Show ContextInteraction
+
+deriving instance Eq Publish
+deriving instance Show Publish
+
+deriving instance Eq ControllerInteraction
+deriving instance Show ControllerInteraction
+}
