@@ -21,11 +21,12 @@ executable diaspec
   other-modules:       Diaspec.Frontend.Lexer,
                        Diaspec.Frontend.Parser,
                        Diaspec.Types,
+                       --Diaspec.Backend.AG.PrintAG,
                        Diaspec.Backend.PrintDiaspec
   other-extensions:    CPP
   build-depends:       base >=4.7 && <4.8, array >=0.5 && <0.6,
                        language-java >= 0.2.7, uulib,
-                       cmdargs >= 0.10.12
+                       cmdargs >= 0.10.12, Cabal < 1.20.0.0
   hs-source-dirs:      src
   build-tools:         alex, happy
   default-language:    Haskell2010
