@@ -1,0 +1,56 @@
+{
+}
+
+----------------------------------
+-- Pretty printing
+----------------------------------
+
+attr Declaration
+  syn ppRacket :: {PP_Doc}  -- pretty printing (multiline mode)
+
+attr Type
+  syn ppRacket :: {PP_Doc}
+
+attr ContextInteraction
+  syn ppRacket :: {PP_Doc}
+
+attr ControllerInteraction
+  syn ppRacket :: {PP_Doc}
+
+attr Get
+  syn ppRacket :: {PP_Doc}
+
+attr Publish
+  syn ppRacket :: {PP_Doc}
+
+sem Declaration
+  | Source      lhs.ppRacket = text "source" >#< text @name >#< text "as" >#< @ty.ppRacket
+  | Action      lhs.ppRacket = text "action" >#< text @name >#< text "as" >#< @ty.ppRacket
+  | Context     lhs.ppRacket = text "context" >#< text @name >#<
+                                  text "as" >#< @ty.ppRacket >#< "{" >-<
+				  (indent 4 @contr.ppRacket) >-< "}"
+  | Controller  lhs.ppRacket = text "controller" >#< text @name >#< "{" >-<
+				  (indent 4 @contr.ppRacket) >-< "}"
+
+
+sem Publish
+  | AlwaysPublish    lhs.ppRacket = text $ show @self
+  | MaybePublish     lhs.ppRacket = text $ show @self
+
+sem Type
+  | Bool    lhs.ppRacket = text $ show @self
+  | Int     lhs.ppRacket = text $ show @self
+  | Picture lhs.ppRacket = text $ show @self
+  | String  lhs.ppRacket = text $ show @self
+
+sem ControllerInteraction
+  | WhenContext     lhs.ppRacket = text "when_provided" >#< text @name
+                                   >-< text "do" >#< text @act
+sem ContextInteraction
+  | WhenRequired    lhs.ppRacket = text "when_required" >-< @get.ppRacket
+  | WhenProvided    lhs.ppRacket = text "when_provided" >#< text @name
+                                   >-< @get.ppRacket >-< @pub.ppRacket
+
+sem Get
+  | Nothing   lhs.ppRacket = empty
+  | Just      lhs.ppRacket = text "get" >#< text @just

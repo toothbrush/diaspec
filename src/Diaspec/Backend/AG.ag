@@ -11,4 +11,5 @@ module {Diaspec.Backend.AG} {} {}
 
 include "AG/Base.ag"
 include "AG/PrintDiaspec.ag"
+include "AG/PrintRacket.ag"
 
