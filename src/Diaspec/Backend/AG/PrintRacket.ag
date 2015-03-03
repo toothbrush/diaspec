@@ -5,23 +5,8 @@
 -- Pretty printing
 ----------------------------------
 
-attr Declaration
+attr Declaration Type ContextInteraction ControllerInteraction Get Publish
   syn ppRacket :: {PP_Doc}  -- pretty printing (multiline mode)
-
-attr Type
-  syn ppRacket :: {PP_Doc}
-
-attr ContextInteraction
-  syn ppRacket :: {PP_Doc}
-
-attr ControllerInteraction
-  syn ppRacket :: {PP_Doc}
-
-attr Get
-  syn ppRacket :: {PP_Doc}
-
-attr Publish
-  syn ppRacket :: {PP_Doc}
 
 sem Declaration
   | Source      lhs.ppRacket = text "(define-source"  >#< text @name >#< @ty.ppRacket >|< text ")"

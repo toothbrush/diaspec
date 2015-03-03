@@ -8,23 +8,26 @@ import Diaspec.Frontend.Parser (parseGrammar)
 import Diaspec.Frontend.Lexer  (alexScanTokens)
 import Diaspec.Backend.AG (Specification (..))
 import Diaspec.Backend.PrintDiaspec
+import Diaspec.Backend.GenerateJava
 
+import Language.Java.Pretty (prettyPrint)
 import UU.Pretty (disp, render, PP_Doc (..))
 
 import System.Console.CmdArgs
 
 data DiaspecCompiler = Pretty { inFile :: FilePath
                               , outFile :: Maybe FilePath}
-                     | Java   { inFile :: FilePath
-                              , outDir :: FilePath}
+                     | Java   { inFile :: FilePath }
+                             -- , outDir :: FilePath}
                      | Racket { inFile :: FilePath
                               , outFile :: Maybe FilePath}
                      deriving (Show, Data, Typeable)
 
 pretty = Pretty { inFile = "-" &= argPos 0 &= typFile  -- &= help "Specification file to process."
-                , outFile = outFileHelp} &= auto
+                , outFile = outFileHelp} -- &= auto
 java   = Java   { inFile = "-" &= argPos 0 &= typFile  -- &= help "Specification file to process."
-                , outDir = def &= argPos 1 &= typDir}
+                           }
+                -- , outDir = def &= argPos 1 &= typDir}
 racket = Racket { inFile = "-" &= argPos 0 &= typFile  -- &= help "Specification file to process."
                 , outFile = outFileHelp}
 
@@ -42,7 +45,22 @@ main = do
      do
        putStrLn "[RACKET] Pretty-print mode selected."
        handlePretty prettyRacket infile out
-   (_)          -> undefined
+   (Java infile)->
+   --(Java infile outdir)->
+     do
+       putStrLn "[JAVA] Generate framework."
+       handleJava infile ""
+
+handleJava :: FilePath -> FilePath -> IO()
+handleJava i o = do
+  spec <- case i of
+           "-" -> do putStrLn "Reading from STDIN."
+                     getContents
+           _   -> do putStrLn ("Dealing with file: " ++ show i)
+                     putStr "\n\n----\n\n"
+                     readFile i
+  let res = (genJava . parseGrammar . alexScanTokens) spec
+  mapM_ (putStrLn . prettyPrint) res
 
 handlePretty :: (Specification -> PP_Doc) -> FilePath -> Maybe FilePath -> IO ()
 handlePretty pf i o = do

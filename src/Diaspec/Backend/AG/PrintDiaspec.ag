@@ -6,23 +6,8 @@
 -- Pretty printing
 ----------------------------------
 
-attr Declaration
+attr Type ContextInteraction ControllerInteraction Declaration Get Publish
   syn ppDia :: {PP_Doc}  -- pretty printing (multiline mode)
-
-attr Type
-  syn ppDia :: {PP_Doc}
-
-attr ContextInteraction
-  syn ppDia :: {PP_Doc}
-
-attr ControllerInteraction
-  syn ppDia :: {PP_Doc}
-
-attr Get
-  syn ppDia :: {PP_Doc}
-
-attr Publish
-  syn ppDia :: {PP_Doc}
 
 sem Declaration
   | Source      lhs.ppDia = text "source" >#< text @name >#< text "as" >#< @ty.ppDia

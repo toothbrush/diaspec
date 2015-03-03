@@ -1,0 +1,88 @@
+{
+import qualified Language.Java.Syntax as J
+}
+
+----------------------------------
+-- Java generation
+----------------------------------
+
+attr Declaration
+  syn genJ :: {J.CompilationUnit}  -- pretty printing (multiline mode)
+
+sem Declaration
+  | Source      lhs.genJ = J.CompilationUnit (Just (J.PackageDecl (J.Name [J.Ident "fr",J.Ident "diaspec",J.Ident "generated"])))
+    			   		     [] -- no imports
+					     [J.ClassTypeDecl
+					        $ J.ClassDecl [J.Public, J.Abstract]
+						            (J.Ident$"Abstract"
+							     ++ @name)
+							     [] (Just
+							     (J.ClassRefType
+							     (J.ClassType
+							     [(J.Ident
+							     "Publisher",[J.ActualType
+							     (J.ClassRefType
+							     (J.ClassType
+							     [(J.Ident
+							     "Bitmap",[])]))])])))
+							     [J.ClassRefType
+							     (J.ClassType
+							     [(J.Ident
+							     "Source",[])])]
+							     (J.ClassBody
+							     [J.MemberDecl
+							     (J.MethodDecl
+							     [J.Protected,J.Abstract]
+							     []
+							     Nothing
+							     (J.Ident
+							     "doTakePicture")
+							     [] []
+							     (J.MethodBody
+							     Nothing)),J.MemberDecl
+							     (J.MethodDecl
+							     [J.Public,J.Abstract]
+							     []
+							     Nothing
+							     (J.Ident
+							     "picReceived")
+							     [J.FormalParam
+							     []
+							     (J.RefType
+							     (J.ClassRefType
+							     (J.ClassType
+							     [(J.Ident
+							     "Intent",[])])))
+							     False
+							     (J.VarId
+							     (J.Ident
+							     "data"))]
+							     []
+							     (J.MethodBody
+							     Nothing))])]
+  | Action      lhs.genJ = undefined
+  | Context     lhs.genJ = undefined
+  | Controller  lhs.genJ = undefined
+
+-- 
+-- sem Publish
+--   | AlwaysPublish    lhs.genJ = text $ show @self
+--   | MaybePublish     lhs.genJ = text $ show @self
+-- 
+-- sem Type
+--   | Bool    lhs.genJ = text $ show @self
+--   | Int     lhs.genJ = text $ show @self
+--   | Picture lhs.genJ = text $ show @self
+--   | String  lhs.genJ = text $ show @self
+-- 
+-- sem ControllerInteraction
+--   | WhenContext     lhs.genJ = text "when_provided" >#< text @name
+--                                 >-< text "do" >#< text @act
+-- sem ContextInteraction
+--   | WhenRequired    lhs.genJ = text "when_required" >-< @get.genJ
+--   | WhenProvided    lhs.genJ = text "when_provided" >#< text @name
+--                                 >-< @get.genJ >-< @pub.genJ
+-- 
+-- sem Get
+--   | Nothing   lhs.genJ = empty
+--   | Just      lhs.genJ = text "get" >#< text @just
