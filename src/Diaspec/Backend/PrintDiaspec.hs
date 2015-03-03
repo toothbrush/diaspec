@@ -31,6 +31,7 @@ formatWith f = foldr (\d doc -> f d >-< text "" >-< doc) empty
 
 prettyRacket :: Specification -> PP_Doc
 prettyRacket s = text "" >-< text ";; Auto generated specification" >-<
+                 text "#lang s-exp \"diaspec.rkt\"" >-<
                  text "" >-< format s
         where format = formatWith (\d ->
                                     ppRacket_Syn_Declaration (wrap_Declaration (sem_Declaration d) inh_Declaration))

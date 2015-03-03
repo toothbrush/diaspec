@@ -24,13 +24,12 @@ attr Publish
   syn ppRacket :: {PP_Doc}
 
 sem Declaration
-  | Source      lhs.ppRacket = text "source" >#< text @name >#< text "as" >#< @ty.ppRacket
-  | Action      lhs.ppRacket = text "action" >#< text @name >#< text "as" >#< @ty.ppRacket
-  | Context     lhs.ppRacket = text "context" >#< text @name >#<
-                                  text "as" >#< @ty.ppRacket >#< "{" >-<
-				  (indent 4 @contr.ppRacket) >-< "}"
-  | Controller  lhs.ppRacket = text "controller" >#< text @name >#< "{" >-<
-				  (indent 4 @contr.ppRacket) >-< "}"
+  | Source      lhs.ppRacket = text "(define-source"  >#< text @name >#< @ty.ppRacket >|< text ")"
+  | Action      lhs.ppRacket = text "(define-action"  >#< text @name >#< @ty.ppRacket >|< text ")"
+  | Context     lhs.ppRacket = text "(define-context" >#< text @name >#< @ty.ppRacket >-<
+                                       (indent 2 $ "[" >|< @contr.ppRacket >|< "])")
+  | Controller  lhs.ppRacket = text "(define-controller" >#< text @name >-<
+                                       (indent 2 $ "[" >|< @contr.ppRacket >|< "])")
 
 
 sem Publish
@@ -38,18 +37,18 @@ sem Publish
   | MaybePublish     lhs.ppRacket = text $ show @self
 
 sem Type
-  | Bool    lhs.ppRacket = text $ show @self
-  | Int     lhs.ppRacket = text $ show @self
+  | Bool    lhs.ppRacket = text "Boolean"
+  | Int     lhs.ppRacket = text "Integer"
   | Picture lhs.ppRacket = text $ show @self
   | String  lhs.ppRacket = text $ show @self
 
 sem ControllerInteraction
-  | WhenContext     lhs.ppRacket = text "when_provided" >#< text @name
-                                   >-< text "do" >#< text @act
+  | WhenContext     lhs.ppRacket = text "when-provided" >#< text @name
+                                   >#< text "do" >#< text @act
 sem ContextInteraction
-  | WhenRequired    lhs.ppRacket = text "when_required" >-< @get.ppRacket
-  | WhenProvided    lhs.ppRacket = text "when_provided" >#< text @name
-                                   >-< @get.ppRacket >-< @pub.ppRacket
+  | WhenRequired    lhs.ppRacket = text "when-required" >#< @get.ppRacket
+  | WhenProvided    lhs.ppRacket = text "when-provided" >#< text @name
+                                   >#< @get.ppRacket >-< @pub.ppRacket
 
 sem Get
   | Nothing   lhs.ppRacket = empty
