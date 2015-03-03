@@ -16,8 +16,8 @@ import Language.Java.Syntax
 
 -- give this a name for exporting.
 genJava :: Specification -> [CompilationUnit] -- CompilationUnit roughly corresponds to a Java file.
-genJava s = map (\d -> genJ_Syn_Declaration (wrap_Declaration (sem_Declaration d) inh_Declaration)) (sort s)
+genJava s = map (\d -> genJ_Syn_Declaration (wrap_Declaration (sem_Declaration d) inhDeclaration)) (sort s)
 
-inh_Declaration :: Inh_Declaration
-inh_Declaration = Inh_Declaration {}
+inhDeclaration :: Inh_Declaration
+inhDeclaration = Inh_Declaration {}
 

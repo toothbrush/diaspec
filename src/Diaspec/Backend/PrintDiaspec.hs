@@ -20,10 +20,10 @@ prettyDia :: Specification -> PP_Doc
 prettyDia s = text "" >-< text "-- Auto generated specification" >-<
               text "" >-< format (sort s)
   where format = formatWith (\d -> 
-                              ppDia_Syn_Declaration (wrap_Declaration (sem_Declaration d) inh_Declaration))
+                              ppDia_Syn_Declaration (wrap_Declaration (sem_Declaration d) inhDeclaration))
 
-inh_Declaration :: Inh_Declaration
-inh_Declaration = Inh_Declaration {}
+inhDeclaration :: Inh_Declaration
+inhDeclaration = Inh_Declaration {}
 
 formatWith :: forall a b. (PP b) => (a->b) -> [a] -> PP_Doc
 formatWith f = foldr (\d doc -> f d >-< text "" >-< doc) empty
@@ -33,4 +33,4 @@ prettyRacket s = text "" >-< text ";; Auto generated specification" >-<
                  text "#lang s-exp \"diaspec.rkt\"" >-<
                  text "" >-< format (sort s)
         where format = formatWith (\d ->
-                                    ppRacket_Syn_Declaration (wrap_Declaration (sem_Declaration d) inh_Declaration))
+                                    ppRacket_Syn_Declaration (wrap_Declaration (sem_Declaration d) inhDeclaration))
