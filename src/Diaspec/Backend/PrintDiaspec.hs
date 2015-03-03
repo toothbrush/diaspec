@@ -1,5 +1,3 @@
--- i know i know
-{-# OPTIONS_GHC -fno-warn-orphans #-}
 {-# LANGUAGE RankNTypes #-}
 
 module Diaspec.Backend.PrintDiaspec where
