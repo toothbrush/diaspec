@@ -1,7 +1,14 @@
-
 -- i know i know
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 module Diaspec.Sort where
+
+{-
+ - Horribly ugly sorting function. What i want is
+ - the order sources, actions, contexts, controllers.
+ - Same category components should be compared by name.
+ -}
+
+-- Copyright © 2015 Paul van der Walt <paul@denknerd.org>
 
 import Diaspec.Backend.AG (Declaration (..))
 
