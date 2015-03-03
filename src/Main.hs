@@ -74,5 +74,5 @@ handlePretty pf i o = do
   case o of
     Nothing -> return ()
     Just fname -> do
-      writeFile fname ((disp res 80) "")
+      writeFile fname (disp res 80 "")
       putStrLn $ "---\n\nWriting to file " ++ show fname ++ "."
