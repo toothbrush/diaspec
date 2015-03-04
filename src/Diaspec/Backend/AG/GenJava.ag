@@ -15,7 +15,7 @@ attr Type
 
 sem Declaration
   | Source      lhs.genJ = clsSource @name @ty.genJ
-  | Action      lhs.genJ = undefined
+  | Action      lhs.genJ = clsAction @name @ty.genJ
   | Context     lhs.genJ = undefined
   | Controller  lhs.genJ = undefined
 
@@ -46,6 +46,26 @@ sem Type
 
 {
 
+clsAction :: String  -- ^ class name
+    -- -> [TypeParam]   -- ^ for generic classes: type parameters
+    -- -> Maybe RefType -- ^ extends
+    -- -> [RefType]     -- ^ implements, sources always implement "Source"
+    -> J.RefType -- output type of the source.
+    --  -> ClassBody
+    -> J.CompilationUnit
+clsAction clname ty =
+  J.CompilationUnit pack
+  [] -- no imports
+  [J.ClassTypeDecl $ J.ClassDecl publicAbstract
+   (J.Ident$ "Abstract"++clname)
+   [] -- not a generic class, hence no type parameters
+   Nothing -- does not extend anything
+   [J.ClassRefType -- implements Action
+    (J.ClassType
+     [(J.Ident
+       "Action",[])])]
+   (J.ClassBody [J.MemberDecl $ actionMethod clname ty])]
+
 clsSource :: String  -- ^ class name
     -- -> [TypeParam]   -- ^ for generic classes: type parameters
     -- -> Maybe RefType -- ^ extends
@@ -69,10 +89,11 @@ clsSource clname ty =
    [J.ClassRefType
     (J.ClassType
      [(J.Ident
-       "Source",[])])]
+       "Source",[])])] -- implements Source interface.
    (J.ClassBody [J.MemberDecl $ sourceMethod clname ty])]
 
 publicAbstract = [J.Public, J.Abstract] -- we only generate public abstract classes. except for proxies, they're protected final.
+protectedAbstract = [J.Protected, J.Abstract]
 
 pack = packagify "fr.diaspec.scenarioname.generated" -- TODO scenarioname, inherit.
   where packagify s = Just (J.PackageDecl (J.Name (map J.Ident (split "." s)))) 
@@ -91,8 +112,19 @@ jtype t = case t of
 sourceMethod :: String -- ^ name of source
              -> J.RefType -- ^ expected return type.
              -> J.MemberDecl
-sourceMethod nm ty = (J.MethodDecl publicAbstract
+sourceMethod nm ty = (J.MethodDecl protectedAbstract
                            [] (Just$ J.RefType ty)
-                           (J.Ident$ "get"++nm++"Value") [] [] (J.MethodBody Nothing))
+                           (J.Ident$ "get"++nm++"Value") [] -- no parameters
+                           [] -- no exceptions
+                           (J.MethodBody Nothing))
   
+actionMethod :: String -- ^ name of source
+             -> J.RefType -- ^ expected return type.
+             -> J.MemberDecl
+actionMethod nm ty = (J.MethodDecl protectedAbstract
+                           [] Nothing 
+                           (J.Ident$ "do"++nm++"Action")
+                           [J.FormalParam [] (J.RefType ty) False (J.VarId$ J.Ident "param")] -- formal parameters.
+                           [] -- exception types
+                           (J.MethodBody Nothing))
 }
