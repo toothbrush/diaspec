@@ -35,7 +35,7 @@ import Diaspec.Backend.AG
 
 -- production rules for the grammar
 
-prods :: { Specification }
+prods :: { [Declaration] }
 prods : Exp                    { [$1]    }
       | prods Exp              { $2 : $1 }
 

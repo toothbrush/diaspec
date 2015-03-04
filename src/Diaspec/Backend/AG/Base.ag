@@ -10,7 +10,9 @@ data Type
      | String
      | Picture
 
-type Specification = [Declaration]
+data Specification 
+     | S name :: String
+         ds   :: {[Declaration]}
 
 data Declaration
    | Source      name  :: String

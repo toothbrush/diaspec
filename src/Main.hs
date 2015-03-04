@@ -13,6 +13,8 @@ import Diaspec.Backend.GenerateJava
 import Language.Java.Pretty (prettyPrint)
 import UU.Pretty (disp, render, PP_Doc (..))
 
+import Data.List.Utils (split)
+import Data.Char (isAlpha)
 import System.Console.CmdArgs
 
 data DiaspecCompiler = Pretty { inFile :: FilePath
@@ -54,6 +56,7 @@ main = do
        putStrLn "[JAVA] Generate framework."
        handleJava infile ""
 
+-- TODO less fugly method of building Specification from [Declaration] :/
 handleJava :: FilePath -> FilePath -> IO()
 handleJava i o = do
   spec <- case i of
@@ -62,7 +65,8 @@ handleJava i o = do
            _   -> do putStrLn ("Dealing with file: " ++ show i)
                      putStr "\n\n----\n\n"
                      readFile i
-  let res = (genJava . parseGrammar . alexScanTokens) spec
+  let pn  = filter isAlpha $ head (split "." i)
+  let res = ((\ ds -> genJava (S pn ds)) . parseGrammar . alexScanTokens) spec
   mapM_ (putStrLn . prettyPrint) res
 
 handlePretty :: (Specification -> PP_Doc) -> FilePath -> Maybe FilePath -> IO ()
@@ -72,7 +76,8 @@ handlePretty pf i o = do
                      getContents
            _   -> do putStrLn ("Dealing with file: " ++ show i)
                      readFile i
-  let res = (pf . parseGrammar . alexScanTokens) spec
+  let pn  = filter isAlpha $ head (split "." i)
+  let res = ((\ds -> pf (S pn ds)) . parseGrammar . alexScanTokens) spec
   render res 80
   case o of
     Nothing -> return ()
