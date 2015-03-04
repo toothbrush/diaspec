@@ -23,14 +23,14 @@ data DiaspecCompiler = Pretty { inFile :: FilePath
                              -- , outDir :: FilePath}
                      deriving (Show, Data, Typeable)
 
-pretty = Pretty { inFile = "-" &= argPos 0 &= typFile
-                , outFile = Nothing}
+pretty = Pretty { inFile = def &= args &= typFile
+                , outFile = Nothing &= typFile} -- &= explicit &= name "ppspec"
          -- &= auto
-java   = Java   { inFile = "-" &= argPos 0 &= typFile
-                           }
+java   = Java   { inFile = def &= args &= typFile
+                           } -- &= explicit &= name "java"
                 -- , outDir = def &= argPos 1 &= typDir}
-racket = Racket { inFile = "-" &= argPos 0 &= typFile
-                , outFile = Nothing}
+racket = Racket { inFile = def &= args &= typFile
+                , outFile = Nothing &= typFile} -- &= explicit &= name "racket"
 
 -- outFileHelp = Nothing &= help "Output file. Default to STDOUT." &= typFile
 
