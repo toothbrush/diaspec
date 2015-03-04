@@ -3,8 +3,11 @@ HSs = $(shell find src/ -type f -name '*.hs')
 HandwrittenHS := $(filter-out src/Diaspec/Backend/AG.hs,$(HSs))
 
 
-all: src/Diaspec/Backend/AG.hs
+all: src/Diaspec/Backend/AG.hs diaspec
 	cabal build
+
+diaspec:
+	ln -sv dist/build/diaspec/diaspec
 
 # This AG file includes all the others.
 src/Diaspec/Backend/AG.hs: $(AGs)
