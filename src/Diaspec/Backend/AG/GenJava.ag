@@ -6,6 +6,8 @@ import Data.String.Utils (split)
 ----------------------------------
 -- Java generation
 ----------------------------------
+-- attr Specification
+  -- inh projName :: {String}
 
 attr Declaration
   syn genJ :: {J.CompilationUnit}  -- pretty printing (multiline mode)
@@ -13,10 +15,11 @@ attr Declaration
 attr Type
   syn genJ :: {J.RefType}
 
+
 sem Declaration
   | Source      lhs.genJ = clsSource @name @ty.genJ
   | Action      lhs.genJ = clsAction @name @ty.genJ
-  | Context     lhs.genJ = undefined
+  | Context     lhs.genJ = undefined -- clsContext @name @ty.genJ 
   | Controller  lhs.genJ = undefined
 
 -- | determines the return type of a context.
@@ -46,53 +49,40 @@ sem Type
 
 {
 
-clsAction :: String  -- ^ class name
-    -- -> [TypeParam]   -- ^ for generic classes: type parameters
-    -- -> Maybe RefType -- ^ extends
-    -- -> [RefType]     -- ^ implements, sources always implement "Source"
-    -> J.RefType -- output type of the source.
-    --  -> ClassBody
-    -> J.CompilationUnit
-clsAction clname ty =
-  J.CompilationUnit pack
-  [] -- no imports
+clsResource :: String  -- ^ class name
+            -> J.RefType -- ^ type of the resource.
+            -> Maybe J.RefType -- ^ does the class extend anything?
+            -> [J.RefType] -- ^ what does it implement?
+            -> [J.Decl] -- ^ body of the class
+            -> J.CompilationUnit -- ^ give back a complete class
+clsResource clname ty extends implements body =
+  J.CompilationUnit pack [] -- no imports
   [J.ClassTypeDecl $ J.ClassDecl publicAbstract
    (J.Ident$ "Abstract"++clname)
    [] -- not a generic class, hence no type parameters
-   Nothing -- does not extend anything
-   [J.ClassRefType -- implements Action
-    (J.ClassType
-     [(J.Ident
-       "Action",[])])]
-   (J.ClassBody [J.MemberDecl $ actionMethod clname ty])]
+   extends implements
+   (J.ClassBody body)]
+
+clsAction :: String  -- ^ class name
+          -> J.RefType -- ^ input type of the action.
+          -> J.CompilationUnit -- ^ gives back full class.
+clsAction clname ty =
+  clsResource clname ty 
+    Nothing -- does not extend anything
+    [J.ClassRefType (J.ClassType [(J.Ident "Action",[])])] -- implements Action
+    [J.MemberDecl $ actionMethod clname ty] -- only one method as member
 
 clsSource :: String  -- ^ class name
-    -- -> [TypeParam]   -- ^ for generic classes: type parameters
-    -- -> Maybe RefType -- ^ extends
-    -- -> [RefType]     -- ^ implements, sources always implement "Source"
-    -> J.RefType -- output type of the source.
-    --  -> ClassBody
-    -> J.CompilationUnit
+          -> J.RefType -- ^ output type of the source.
+          -> J.CompilationUnit -- ^ gives back a full class.
 clsSource clname ty =
-  J.CompilationUnit pack
-  [] -- no imports
-  [J.ClassTypeDecl $ J.ClassDecl publicAbstract
-   (J.Ident$ "Abstract"++clname)
-   [] -- not a generic class, hence no type parameters
-   (Just -- extends something. Maybe TypeRef
-    (J.ClassRefType
-     (J.ClassType
-      [(J.Ident
-        "Publisher", -- all sources extend publisher, with their type.
-        [J.ActualType ty]
-        )])))
-   [J.ClassRefType
-    (J.ClassType
-     [(J.Ident
-       "Source",[])])] -- implements Source interface.
-   (J.ClassBody [J.MemberDecl $ sourceMethod clname ty])]
+  clsResource clname ty 
+   (Just -- all sources extend publisher, with their type as Generics param.
+    (J.ClassRefType (J.ClassType [(J.Ident "Publisher", [J.ActualType ty])])))
+   [J.ClassRefType  (J.ClassType [(J.Ident "Source",    [])])] -- implements Source interface.
+   [J.MemberDecl $ sourceMethod clname ty] -- one method in the body
 
-publicAbstract = [J.Public, J.Abstract] -- we only generate public abstract classes. except for proxies, they're protected final.
+publicAbstract    = [J.Public,    J.Abstract]
 protectedAbstract = [J.Protected, J.Abstract]
 
 pack = packagify "fr.diaspec.scenarioname.generated" -- TODO scenarioname, inherit.
@@ -109,22 +99,27 @@ jtype t = case t of
     wrap s = J.ClassRefType (J.ClassType
                              [(J.Ident s,[])])
 
+methodDecl :: [J.Modifier] -- ^ scope modifiers, abstract, final
+           -> Maybe J.Type -- ^ expected return type.
+           -> String       -- ^ desired method name
+           -> [J.FormalParam] -- ^ method arguments
+           -> J.MemberDecl -- ^ a method declaration.
+methodDecl scope ret nm args = J.MethodDecl scope [] ret (J.Ident nm) args
+                           [] -- no exceptions
+                           (J.MethodBody Nothing)
+  
 sourceMethod :: String -- ^ name of source
              -> J.RefType -- ^ expected return type.
              -> J.MemberDecl
-sourceMethod nm ty = (J.MethodDecl protectedAbstract
-                           [] (Just$ J.RefType ty)
-                           (J.Ident$ "get"++nm++"Value") [] -- no parameters
-                           [] -- no exceptions
-                           (J.MethodBody Nothing))
+sourceMethod nm ty = methodDecl protectedAbstract
+                           (Just$ J.RefType ty)
+                           ("get"++nm++"Value") [] -- no parameters
   
 actionMethod :: String -- ^ name of source
              -> J.RefType -- ^ expected return type.
              -> J.MemberDecl
-actionMethod nm ty = (J.MethodDecl protectedAbstract
-                           [] Nothing 
-                           (J.Ident$ "do"++nm++"Action")
+actionMethod nm ty = methodDecl protectedAbstract
+                           Nothing 
+                           ("do"++nm++"Action")
                            [J.FormalParam [] (J.RefType ty) False (J.VarId$ J.Ident "param")] -- formal parameters.
-                           [] -- exception types
-                           (J.MethodBody Nothing))
 }
