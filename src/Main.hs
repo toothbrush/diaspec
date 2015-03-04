@@ -17,25 +17,26 @@ import System.Console.CmdArgs
 
 data DiaspecCompiler = Pretty { inFile :: FilePath
                               , outFile :: Maybe FilePath}
-                     | Java   { inFile :: FilePath }
-                             -- , outDir :: FilePath}
                      | Racket { inFile :: FilePath
                               , outFile :: Maybe FilePath}
+                     | Java   { inFile :: FilePath }
+                             -- , outDir :: FilePath}
                      deriving (Show, Data, Typeable)
 
-pretty = Pretty { inFile = "-" &= argPos 0 &= typFile  -- &= help "Specification file to process."
-                , outFile = outFileHelp} -- &= auto
-java   = Java   { inFile = "-" &= argPos 0 &= typFile  -- &= help "Specification file to process."
+pretty = Pretty { inFile = "-" &= argPos 0 &= typFile
+                , outFile = Nothing}
+         -- &= auto
+java   = Java   { inFile = "-" &= argPos 0 &= typFile
                            }
                 -- , outDir = def &= argPos 1 &= typDir}
-racket = Racket { inFile = "-" &= argPos 0 &= typFile  -- &= help "Specification file to process."
-                , outFile = outFileHelp}
+racket = Racket { inFile = "-" &= argPos 0 &= typFile
+                , outFile = Nothing}
 
-outFileHelp = Nothing &= help "Output file. Default to STDOUT." &= typFile
+-- outFileHelp = Nothing &= help "Output file. Default to STDOUT." &= typFile
 
 main :: IO ()
 main = do
-  opt <- cmdArgs $ modes [pretty, racket, java] &= help "bluh?" &= program "diaspec"
+  opt <- cmdArgs $ modes [racket, pretty, java] &= help "bluh?" &= program "diaspec"
   case opt of
    (Pretty infile out) ->
      do
