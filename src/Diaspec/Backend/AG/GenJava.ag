@@ -11,10 +11,10 @@ attr Declaration
   syn genJ :: {J.CompilationUnit}  -- pretty printing (multiline mode)
 
 attr Type
-  syn genJ :: {J.TypeArgument}
+  syn genJ :: {J.RefType}
 
 sem Declaration
-  | Source      lhs.genJ = clsSource ("Abstract" ++ @name) @ty.genJ
+  | Source      lhs.genJ = clsSource @name @ty.genJ
   | Action      lhs.genJ = undefined
   | Context     lhs.genJ = undefined
   | Controller  lhs.genJ = undefined
@@ -50,42 +50,49 @@ clsSource :: String  -- ^ class name
     -- -> [TypeParam]   -- ^ for generic classes: type parameters
     -- -> Maybe RefType -- ^ extends
     -- -> [RefType]     -- ^ implements, sources always implement "Source"
-    -> J.TypeArgument -- output type of the source.
+    -> J.RefType -- output type of the source.
     --  -> ClassBody
     -> J.CompilationUnit
 clsSource clname ty =
   J.CompilationUnit pack
   [] -- no imports
   [J.ClassTypeDecl $ J.ClassDecl publicAbstract
-   (J.Ident clname)
+   (J.Ident$ "Abstract"++clname)
    [] -- not a generic class, hence no type parameters
    (Just -- extends something. Maybe TypeRef
     (J.ClassRefType
      (J.ClassType
       [(J.Ident
         "Publisher", -- all sources extend publisher, with their type.
-        [ty])])))
+        [J.ActualType ty]
+        )])))
    [J.ClassRefType
     (J.ClassType
      [(J.Ident
        "Source",[])])]
-   (J.ClassBody [])]
+   (J.ClassBody [J.MemberDecl $ sourceMethod clname ty])]
 
 publicAbstract = [J.Public, J.Abstract] -- we only generate public abstract classes. except for proxies, they're protected final.
 
 pack = packagify "fr.diaspec.scenarioname.generated" -- TODO scenarioname, inherit.
   where packagify s = Just (J.PackageDecl (J.Name (map J.Ident (split "." s)))) 
 
-jtype :: Type -> J.TypeArgument
+jtype :: Type -> J.RefType
 jtype t = case t of
      Bool    -> wrap "Boolean"
      Int     -> wrap "Integer"
      String  -> wrap "String"
      Picture -> wrap "Bitmap" 
   where
-    wrap :: String -> J.TypeArgument
-    wrap s = J.ActualType
-             (J.ClassRefType
-              (J.ClassType
-               [(J.Ident s,[])]))
+    wrap :: String -> J.RefType
+    wrap s = J.ClassRefType (J.ClassType
+                             [(J.Ident s,[])])
+
+sourceMethod :: String -- ^ name of source
+             -> J.RefType -- ^ expected return type.
+             -> J.MemberDecl
+sourceMethod nm ty = (J.MethodDecl publicAbstract
+                           [] (Just$ J.RefType ty)
+                           (J.Ident$ "get"++nm++"Value") [] [] (J.MethodBody Nothing))
+  
 }
