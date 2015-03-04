@@ -1,5 +1,6 @@
 {
 import qualified Language.Java.Syntax as J
+import Data.String.Utils (split)
 }
 
 ----------------------------------
@@ -9,80 +10,82 @@ import qualified Language.Java.Syntax as J
 attr Declaration
   syn genJ :: {J.CompilationUnit}  -- pretty printing (multiline mode)
 
+attr Type
+  syn genJ :: {J.TypeArgument}
+
 sem Declaration
-  | Source      lhs.genJ = J.CompilationUnit (Just (J.PackageDecl (J.Name [J.Ident "fr",J.Ident "diaspec",J.Ident "generated"])))
-    			   		     [] -- no imports
-					     [J.ClassTypeDecl
-					        $ J.ClassDecl [J.Public, J.Abstract]
-						            (J.Ident$"Abstract"
-							     ++ @name)
-							     [] (Just
-							     (J.ClassRefType
-							     (J.ClassType
-							     [(J.Ident
-							     "Publisher",[J.ActualType
-							     (J.ClassRefType
-							     (J.ClassType
-							     [(J.Ident
-							     "Bitmap",[])]))])])))
-							     [J.ClassRefType
-							     (J.ClassType
-							     [(J.Ident
-							     "Source",[])])]
-							     (J.ClassBody
-							     [J.MemberDecl
-							     (J.MethodDecl
-							     [J.Protected,J.Abstract]
-							     []
-							     Nothing
-							     (J.Ident
-							     "doTakePicture")
-							     [] []
-							     (J.MethodBody
-							     Nothing)),J.MemberDecl
-							     (J.MethodDecl
-							     [J.Public,J.Abstract]
-							     []
-							     Nothing
-							     (J.Ident
-							     "picReceived")
-							     [J.FormalParam
-							     []
-							     (J.RefType
-							     (J.ClassRefType
-							     (J.ClassType
-							     [(J.Ident
-							     "Intent",[])])))
-							     False
-							     (J.VarId
-							     (J.Ident
-							     "data"))]
-							     []
-							     (J.MethodBody
-							     Nothing))])]
+  | Source      lhs.genJ = clsSource ("Abstract" ++ @name) @ty.genJ
   | Action      lhs.genJ = undefined
   | Context     lhs.genJ = undefined
   | Controller  lhs.genJ = undefined
 
--- 
+-- | determines the return type of a context.
 -- sem Publish
 --   | AlwaysPublish    lhs.genJ = text $ show @self
 --   | MaybePublish     lhs.genJ = text $ show @self
 -- 
--- sem Type
---   | Bool    lhs.genJ = text $ show @self
---   | Int     lhs.genJ = text $ show @self
---   | Picture lhs.genJ = text $ show @self
---   | String  lhs.genJ = text $ show @self
--- 
+sem Type
+  | Bool    lhs.genJ = jtype @self
+  | Int     lhs.genJ = jtype @self
+  | Picture lhs.genJ = jtype @self
+  | String  lhs.genJ = jtype @self
+
 -- sem ControllerInteraction
 --   | WhenContext     lhs.genJ = text "when_provided" >#< text @name
 --                                 >-< text "do" >#< text @act
+-- | influences name, 
 -- sem ContextInteraction
 --   | WhenRequired    lhs.genJ = text "when_required" >-< @get.genJ
 --   | WhenProvided    lhs.genJ = text "when_provided" >#< text @name
 --                                 >-< @get.genJ >-< @pub.genJ
 -- 
+-- | add proxy or not
 -- sem Get
 --   | Nothing   lhs.genJ = empty
 --   | Just      lhs.genJ = text "get" >#< text @just
+
+{
+
+clsSource :: String  -- ^ class name
+    -- -> [TypeParam]   -- ^ for generic classes: type parameters
+    -- -> Maybe RefType -- ^ extends
+    -- -> [RefType]     -- ^ implements, sources always implement "Source"
+    -> J.TypeArgument -- output type of the source.
+    --  -> ClassBody
+    -> J.CompilationUnit
+clsSource clname ty =
+  J.CompilationUnit pack
+  [] -- no imports
+  [J.ClassTypeDecl $ J.ClassDecl publicAbstract
+   (J.Ident clname)
+   [] -- not a generic class, hence no type parameters
+   (Just -- extends something. Maybe TypeRef
+    (J.ClassRefType
+     (J.ClassType
+      [(J.Ident
+        "Publisher", -- all sources extend publisher, with their type.
+        [ty])])))
+   [J.ClassRefType
+    (J.ClassType
+     [(J.Ident
+       "Source",[])])]
+   (J.ClassBody [])]
+
+publicAbstract = [J.Public, J.Abstract] -- we only generate public abstract classes. except for proxies, they're protected final.
+
+pack = packagify "fr.diaspec.scenarioname.generated" -- TODO scenarioname, inherit.
+  where packagify s = Just (J.PackageDecl (J.Name (map J.Ident (split "." s)))) 
+
+jtype :: Type -> J.TypeArgument
+jtype t = case t of
+     Bool    -> wrap "Boolean"
+     Int     -> wrap "Integer"
+     String  -> wrap "String"
+     Picture -> wrap "Bitmap" 
+  where
+    wrap :: String -> J.TypeArgument
+    wrap s = J.ActualType
+             (J.ClassRefType
+              (J.ClassType
+               [(J.Ident s,[])]))
+}
