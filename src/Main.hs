@@ -34,9 +34,11 @@ racket = Racket { inFile = "-" &= argPos 0 &= typFile
 
 -- outFileHelp = Nothing &= help "Output file. Default to STDOUT." &= typFile
 
+mode = cmdArgsMode $ modes [racket, java, pretty] -- &= help "bluh?" &= program "diaspec"
+
 main :: IO ()
 main = do
-  opt <- cmdArgs $ modes [racket, pretty, java] &= help "bluh?" &= program "diaspec"
+  opt <- cmdArgsRun mode
   case opt of
    (Pretty infile out) ->
      do
