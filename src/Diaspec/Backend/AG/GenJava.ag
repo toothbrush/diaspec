@@ -89,28 +89,29 @@ sem ContextInteraction
                  loc.methName = "on" ++ @name ++ "Provided"
                  lhs.methods= [ methodDecl protectedAbstract (Just @pub.ret) --return
                                 @loc.methName
-                                [FormalParam [] (RefType @loc.inType) False (VarId (Ident "newValue"))] -- TODO proxy??
+                                [FormalParam [] (RefType @loc.inType) False
+                                 (VarId (Ident "newValue"))] -- TODO proxy??
                                 Nothing
                               , methodDecl publicFinal Nothing
                                 "trigger"
-                                [FormalParam [] (RefType @loc.inType) False (VarId (Ident "value"))]
+                                [FormalParam [] (RefType @loc.inType) False
+                                 (VarId (Ident "value"))]
                                 (Just
                                  (Block
-                                  [LocalVars [] @pub.ret [VarDecl (VarId (Ident "v"))
-                                      (Just (InitExp (MethodInv (MethodCall
-                                               (Name [Ident @loc.methName]) @get.args))))],
-                                   @pub.notify]))
+                                  [ LocalVars [] @pub.ret
+                                    [VarDecl (VarId (Ident "v"))
+                                     (Just (InitExp (MethodInv (MethodCall
+                                        (Name [Ident @loc.methName]) @get.args))))]
+                                  , @pub.notify]))
                               ] ++ runnerInit True
   | WhenRequired lhs.classImplements = [ClassRefType (ClassType [(Ident "Context",[])])]
                  loc.methName = "when" ++ @lhs.thisCtxNm ++ "Required"
                  loc.myType  = jtype . fromJust $ lookup @lhs.thisCtxNm @lhs.tyEnv
                  lhs.methods= [ methodDecl protectedAbstract
                                 (Just$ RefType @loc.myType) --return TODO simple inh instead of lookup?
-                                @loc.methName
-                                [] -- TODO proxy??
+                                @loc.methName [] -- TODO proxy??
                                 Nothing
-                              , methodDecl [Protected, Final] Nothing
-                                "requireValue"
+                              , methodDecl [Protected, Final] Nothing "requireValue"
                                 [] -- no args
                                 (Just
                                  (Block
