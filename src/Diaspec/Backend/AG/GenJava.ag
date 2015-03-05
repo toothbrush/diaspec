@@ -105,13 +105,25 @@ sem ContextInteraction
 
 -- | determines the return type of a context.
 sem Publish
-  | AlwaysPublish    lhs.ret  = RefType$ jtype @lhs.ty -- TODO maybe wrapping, by Publish
-                     lhs.notify  = BlockStmt -- TODO perhaps unwrap Maybe type
+  | AlwaysPublish    lhs.ret    = RefType$ jtype @lhs.ty
+                     lhs.notify = BlockStmt
                                    (ExpStmt
                                     (MethodInv (MethodCall (Name [Ident "notify"])
                                                 [ExpName (Name [Ident "v"])])))
-  | MaybePublish     lhs.ret  = undefined
-                     lhs.notify = undefined
+  | MaybePublish     lhs.ret    = RefType (ClassRefType (ClassType [(Ident "Maybe",[ActualType$ jtype @lhs.ty])]))
+                     lhs.notify = BlockStmt
+                                  (IfThen (InstanceOf (ExpName (Name [Ident "v"])) (ClassRefType (ClassType [(Ident "Just",[])])))
+                                   (ExpStmt
+                                    (MethodInv
+                                     (MethodCall (Name [Ident "notify"])
+                                      [FieldAccess
+                                       (PrimaryFieldAccess
+                                        (Cast
+                                         (RefType
+                                          (ClassRefType
+                                           (ClassType
+                                            [(Ident "Just",[ActualType$ jtype @lhs.ty])])))
+                                         (ExpName (Name [Ident "v"]))) (Ident "just_value"))]))))
 
 -- | add proxy or not
 sem Get
