@@ -1,6 +1,7 @@
 -- Copyright 2015 © Paul van der Walt <paul.vanderwalt@inria.fr>
 
 {-# LANGUAGE DeriveDataTypeable #-}
+{-# OPTIONS_GHC -fno-cse #-}
 
 module Main where
 
@@ -25,13 +26,13 @@ data DiaspecCompiler = Pretty { inFile :: FilePath
                              -- , outDir :: FilePath}
                      deriving (Show, Data, Typeable)
 
-pretty = Pretty { inFile = def &= args &= typFile
+pretty = Pretty { inFile = def &= argPos 0 &= typFile
                 , outFile = Nothing &= typFile} -- &= explicit &= name "ppspec"
          -- &= auto
-java   = Java   { inFile = def &= args &= typFile
+java   = Java   { inFile = def &= argPos 0 &= typFile
                            } -- &= explicit &= name "java"
                 -- , outDir = def &= argPos 1 &= typDir}
-racket = Racket { inFile = def &= args &= typFile
+racket = Racket { inFile = def &= argPos 0 &= typFile
                 , outFile = Nothing &= typFile} -- &= explicit &= name "racket"
 
 -- outFileHelp = Nothing &= help "Output file. Default to STDOUT." &= typFile
