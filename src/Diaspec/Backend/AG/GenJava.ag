@@ -2,6 +2,9 @@ imports
 {
 import Language.Java.Syntax
 import Data.String.Utils (split)
+import Data.Maybe (fromJust)
+
+import Debug.Trace
 }
 
 {
@@ -14,27 +17,35 @@ type TyEnv = [(String, DType)]
 
 -- TODO split the two AGs: for pprinting and for compilation.
 attr Specification
-  syn genJ     :: {[CompilationUnit]}
+  syn genJ   :: {[CompilationUnit]}
 
 attr Declarations
-  syn genJ     :: {[CompilationUnit]}
+  inh pkg    :: {Maybe PackageDecl}  -- the package name, derived from specs filename
+  syn genJ   :: {[CompilationUnit]}
+  inh tyEnv  :: {TyEnv} -- environment to keep track of output types of components.
 
 attr Declaration
-  inh projName :: {String}  -- the package name, derived from specs filename
-  syn genJ     :: {CompilationUnit}  -- pretty printing (multiline mode)
-  inh tyEnv    :: {TyEnv} -- environment to keep track of output types of components.
+  inh pkg    :: {Maybe PackageDecl}  -- the package name, derived from specs filename
+  syn genJ   :: {CompilationUnit}  -- pretty printing (multiline mode)
+  inh tyEnv  :: {TyEnv} -- environment to keep track of output types of components.
+  syn name   :: {String}
+  syn ty     :: {DType}
 
 attr DType
   syn javaType :: {RefType}
 
 attr ContextInteraction
   syn classImplements :: {[RefType]}
+  inh tyEnv  :: {TyEnv} -- environment to keep track of output types of components.
 
 sem Specification
-  | S        lhs.genJ = @ds.genJ 
+  | S        lhs.genJ    = @ds.genJ 
+             ds.tyEnv    = []
+             ds.pkg = pack @name
 
 sem Declarations
   | Cons     lhs.genJ = @hd.genJ : @tl.genJ
+             hd.tyEnv = ("Camera", DBool) : [] -- (@hd.name, @hd.ty) : @lhs.tyEnv
   | Nil      lhs.genJ = []
 
 sem DType
@@ -44,20 +55,26 @@ sem DType
   | DString  lhs.javaType = jtype @self
 
 sem Declaration
-  | Source      lhs.genJ = clsSource @loc.pkg @name @ty.javaType
-                loc.pkg  = pack @lhs.projName 
-  | Action      lhs.genJ = clsAction @loc.pkg @name @ty.javaType
-                loc.pkg  = pack @lhs.projName 
-  | Context     lhs.genJ = clsContext @loc.pkg @name Nothing -- input, which depends on interaction contract.
-                           @ty.self -- must add intrcontr
-                loc.pkg  = pack @lhs.projName 
+  | Source      lhs.genJ = clsSource @lhs.pkg @name @ty.javaType
+                lhs.name = @name
+                lhs.ty   = @ty.self
+  | Action      lhs.genJ = clsAction @lhs.pkg @name @ty.javaType
+                lhs.name = @name
+                lhs.ty   = @ty.self
+  | Context     lhs.genJ = clsContext @lhs.pkg @name @contr.classImplements -- implements, which depend on IC.
+                           @ty.self
+                lhs.name = @name
+                lhs.ty   = @ty.self
   | Controller  lhs.genJ = undefined
-                loc.pkg  = pack @lhs.projName 
+                lhs.name = @name
+                lhs.ty   = undefined
 
 -- | influences name of member method, 
 sem ContextInteraction
   | WhenProvided    lhs.classImplements = [ClassRefType (ClassType [(Ident "Context",[])]),
-                                           ClassRefType (ClassType [(Ident "Subscriber",[ActualType$ jtype DBool])])]
+                                           ClassRefType (ClassType [(Ident "Subscriber",
+                                                                     [ActualType$ jtype
+                                                                      (fromJust $ lookup @name @lhs.tyEnv)])])]
   | WhenRequired    lhs.classImplements = undefined
 
 -- 
@@ -78,7 +95,7 @@ sem ContextInteraction
 {
 clsContext :: Maybe (PackageDecl)
            -> String  -- ^ class name
-           -> Maybe RefType -- ^ input type of the context, if a subscriber.
+           -> [RefType] -- ^ implemented interfaces. depends on interaction contract
            -> DType -- ^ output type of the context.
            -> CompilationUnit -- ^ gives back full class.
 clsContext pkg clname i ty =
@@ -86,7 +103,7 @@ clsContext pkg clname i ty =
     -- extends Publisher of Ty:
     (Just (ClassRefType (ClassType [(Ident "Publisher",[ActualType$ jtype ty])])))
     -- implements:
-    [ClassRefType (ClassType [(Ident "Context",[])])] -- implements Context and perhaps subscriber
+    i -- implements Context and perhaps subscriber
     [MemberDecl $ actionMethod clname (jtype ty)] -- only one method as member
 
 clsResource :: Maybe (PackageDecl)

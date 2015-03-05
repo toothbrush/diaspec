@@ -15,6 +15,8 @@ import Diaspec.Backend.AG
 import Diaspec.Sort ()
 import Data.List (sort)
 
+-- TODO directly call all functions on Specification -- it's a nonterminal now too!!
+
 -- give this a name for exporting.
 prettyDia :: Specification -> PP_Doc
 prettyDia (S pn s) = text "" >-< text "-- Auto generated specification" >-<
@@ -23,8 +25,8 @@ prettyDia (S pn s) = text "" >-< text "-- Auto generated specification" >-<
                               ppDia_Syn_Declaration (wrap_Declaration (sem_Declaration d) (inhDeclaration pn)))
 
 inhDeclaration :: String -> Inh_Declaration
-inhDeclaration pn = Inh_Declaration { projName_Inh_Declaration = pn
-                                    , tyEnv_Inh_Declaration    = []
+inhDeclaration pn = Inh_Declaration { pkg_Inh_Declaration   = Nothing
+                                    , tyEnv_Inh_Declaration = []
                                     }
 
 formatWith :: forall a b. (PP b) => (a->b) -> [a] -> PP_Doc
