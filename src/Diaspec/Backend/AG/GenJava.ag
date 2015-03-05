@@ -16,28 +16,39 @@ type TyEnv = [(String, DType)]
 ----------------------------------
 
 -- TODO split the two AGs: for pprinting and for compilation.
-attr Specification
+attr Specification Declarations
   syn genJ   :: {[CompilationUnit]}
 
+attr Declaration
+  syn genJ   :: {CompilationUnit}
+
+attr Declarations Declaration
+  inh pkg      :: {Maybe PackageDecl}  -- the package name, derived from specs filename
+  inh tyEnv    :: {TyEnv} -- environment to keep track of output types of components.
+
 attr Declarations
-  inh pkg    :: {Maybe PackageDecl}  -- the package name, derived from specs filename
-  syn genJ   :: {[CompilationUnit]}
-  inh tyEnv  :: {TyEnv} -- environment to keep track of output types of components.
   syn allTypes :: {TyEnv}
 
 attr Declaration
-  inh pkg    :: {Maybe PackageDecl}  -- the package name, derived from specs filename
-  syn genJ   :: {CompilationUnit}  -- pretty printing (multiline mode)
-  inh tyEnv  :: {TyEnv} -- environment to keep track of output types of components.
-  syn myType :: {TyEnv}
+  syn myType   :: {TyEnv}
 
 attr DType
   syn javaType :: {RefType}
 
 attr ContextInteraction
   syn classImplements :: {[RefType]}
-  inh tyEnv  :: {TyEnv} -- environment to keep track of output types of components.
+  inh tyEnv    :: {TyEnv} -- environment to keep track of output types of components.
+  inh ty      :: {DType}
+  syn methods :: {[Decl]}
 
+attr Publish
+  inh ty      :: {DType} -- turn it into a Maybe, maybe.
+  syn ret     :: {Type}
+  syn notify  :: {BlockStmt}
+
+attr Get
+  syn args    :: {[Exp]}
+                 
 sem Specification
   | S        lhs.genJ  = @ds.genJ 
              ds.tyEnv  = @ds.allTypes
@@ -61,30 +72,52 @@ sem Declaration
   | Action      lhs.genJ = clsAction @lhs.pkg @name @ty.javaType
                 lhs.myType = []
   | Context     lhs.genJ = clsContext @lhs.pkg @name @contr.classImplements -- implements, which depend on IC.
-                           @ty.self
+                           @ty.self @contr.methods
+                contr.ty = @ty.self
                 lhs.myType = [(@name, @ty.self)]
   | Controller  lhs.genJ = undefined
                 lhs.myType = []
 
 -- | influences name of member method, 
 sem ContextInteraction
-  | WhenProvided    lhs.classImplements = [ClassRefType (ClassType [(Ident "Context",[])]),
-                                           ClassRefType (ClassType [(Ident "Subscriber",
-                                                                     [ActualType$ jtype
-                                                                      (fromJust $ lookup @name @lhs.tyEnv)])])]
-  | WhenRequired    lhs.classImplements = undefined
+  | WhenProvided lhs.classImplements = [ClassRefType (ClassType [(Ident "Context",[])]),
+                                        ClassRefType (ClassType [(Ident "Subscriber",
+                                                                  [ActualType @loc.inType])])]
+                 loc.inType = jtype (fromJust $ lookup @name @lhs.tyEnv) 
+                 loc.methName = "on" ++ @name ++ "Provided"
+                 lhs.methods= [ methodDecl protectedAbstract (Just @pub.ret) --return
+                                @loc.methName
+                                [FormalParam [] (RefType @loc.inType) False (VarId (Ident "newValue"))]
+                                Nothing
+                              , methodDecl publicFinal Nothing
+                                "trigger"
+                                [FormalParam [] (RefType @loc.inType) False (VarId (Ident "value"))]
+                                (Just
+                                 (Block
+                                  [LocalVars [] @pub.ret [VarDecl (VarId (Ident "v"))
+                                      (Just (InitExp (MethodInv (MethodCall
+                                               (Name [Ident @loc.methName]) @get.args))))],
+                                   @pub.notify]))
+                              -- , init final runner -- TODO
+                              ]
+  | WhenRequired lhs.classImplements = undefined
+                 lhs.methods  = []
 
--- 
 -- | determines the return type of a context.
--- sem Publish
---   | AlwaysPublish    lhs.genJ = text $ show @self
---   | MaybePublish     lhs.genJ = text $ show @self
--- 
+sem Publish
+  | AlwaysPublish    lhs.ret  = RefType$ jtype @lhs.ty -- TODO maybe wrapping, by Publish
+                     lhs.notify  = BlockStmt -- TODO perhaps unwrap Maybe type
+                                   (ExpStmt
+                                    (MethodInv (MethodCall (Name [Ident "notify"])
+                                                [ExpName (Name [Ident "v"])])))
+  | MaybePublish     lhs.ret  = undefined
+                     lhs.notify = undefined
+
 -- | add proxy or not
--- sem Get
---   | Nothing   lhs.genJ = empty
---   | Just      lhs.genJ = text "get" >#< text @just
--- 
+sem Get
+  | Nothing   lhs.args = [ExpName (Name [Ident "value"])] -- no proxy needed.
+  | Just      lhs.args = undefined
+
 -- sem ControllerInteraction
 --   | WhenContext     lhs.genJ = text "when_provided" >#< text @name
 --                                 >-< text "do" >#< text @act
@@ -94,14 +127,15 @@ clsContext :: Maybe (PackageDecl)
            -> String  -- ^ class name
            -> [RefType] -- ^ implemented interfaces. depends on interaction contract
            -> DType -- ^ output type of the context.
+           -> [Decl] -- ^ the declarations (functions, variables) to be put in the body
            -> CompilationUnit -- ^ gives back full class.
-clsContext pkg clname i ty =
+clsContext pkg clname i ty methods =
   clsResource pkg clname (jtype ty)
     -- extends Publisher of Ty:
     (Just (ClassRefType (ClassType [(Ident "Publisher",[ActualType$ jtype ty])])))
     -- implements:
     i -- implements Context and perhaps subscriber
-    [MemberDecl $ actionMethod clname (jtype ty)] -- only one method as member
+    methods -- these depend on the interaction contract etc
 
 clsResource :: Maybe (PackageDecl)
             -> String  -- ^ class name
@@ -126,7 +160,7 @@ clsAction pkg clname ty =
   clsResource pkg clname ty 
     Nothing -- does not extend anything
     [ClassRefType (ClassType [(Ident "Action",[])])] -- implements Action
-    [MemberDecl $ actionMethod clname ty] -- only one method as member
+    [actionMethod clname ty] -- only one method as member
 
 clsSource :: Maybe (PackageDecl)  -- ^ package name
           -> String  -- ^ class name
@@ -137,8 +171,9 @@ clsSource pkg clname ty =
    (Just -- all sources extend publisher, with their type as Generics param.
     (ClassRefType (ClassType [(Ident "Publisher", [ActualType ty])])))
    [ClassRefType  (ClassType [(Ident "Source",    [])])] -- implements Source interface.
-   [MemberDecl $ sourceMethod clname ty] -- one method in the body
+   [sourceMethod clname ty] -- one method in the body
 
+publicFinal       = [Public,    Final   ]
 publicAbstract    = [Public,    Abstract]
 protectedAbstract = [Protected, Abstract]
 
@@ -160,23 +195,26 @@ methodDecl :: [Modifier] -- ^ scope modifiers, abstract, final
            -> Maybe Type -- ^ expected return type.
            -> String       -- ^ desired method name
            -> [FormalParam] -- ^ method arguments
-           -> MemberDecl -- ^ a method declaration.
-methodDecl scope ret nm args = MethodDecl scope [] ret (Ident nm) args
+           -> Maybe Block
+           -> Decl -- ^ a method declaration.
+methodDecl scope ret nm args bod = MemberDecl$ MethodDecl scope [] ret (Ident nm) args
                            [] -- no exceptions
-                           (MethodBody Nothing)
+                           (MethodBody bod)
   
 sourceMethod :: String -- ^ name of source
              -> RefType -- ^ expected return type.
-             -> MemberDecl
+             -> Decl
 sourceMethod nm ty = methodDecl protectedAbstract
                            (Just$ RefType ty)
                            ("get"++nm++"Value") [] -- no parameters
+                           Nothing -- TODO add init() runner etc, with public 
   
 actionMethod :: String -- ^ name of source
              -> RefType -- ^ expected return type.
-             -> MemberDecl
+             -> Decl
 actionMethod nm ty = methodDecl protectedAbstract
                            Nothing 
                            ("do"++nm++"Action")
                            [FormalParam [] (RefType ty) False (VarId$ Ident "param")] -- formal parameters.
+                           Nothing -- TODO add init() runner etc, with public 
 }
