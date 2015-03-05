@@ -4,14 +4,14 @@ abstract public class AbstractMakeAd extends Publisher<String> implements Contex
 
 	private AbstractRunner runner;
 
-	void init(AbstractRunner runner) {
+	final public void init(AbstractRunner runner) {
 		this.runner = runner;
 	}
 
 	protected abstract String whenRequiredMakeAd(IPProxy discover);
 	// no trigger(..) function, since we're an on-require component
 
-	protected String requireValue() {
+	final protected String requireValue() {
 		IPProxy ipp = new IPProxy();
 		ipp.setAccessible(true);
 		String resp = whenRequiredMakeAd(ipp);
@@ -24,12 +24,12 @@ abstract public class AbstractMakeAd extends Publisher<String> implements Contex
 			// Exists only to defeat instantiation.
 		}
 	
-		private void setAccessible(boolean isAccessible) {
+		final private void setAccessible(boolean isAccessible) {
 			this.isAccessible = isAccessible;
 		}
 
 		private boolean isAccessible = false;
-		public String getMakeAd() {
+		final public String getMakeAd() {
 			if (isAccessible)
 			{ return runner.getIP().getIPValue(); }
 

@@ -8,17 +8,16 @@ abstract public class AbstractProcessPicture
 	@SuppressWarnings("unused")
 	private AbstractRunner runner;
 
-    void init(AbstractRunner runner) {
-        this.runner = runner;
-    }
+	final public void init(AbstractRunner runner) {
+		this.runner = runner;
+	}
 
     protected abstract Bitmap onCameraProvided(Bitmap pictureProvided);
 
     @Override
-	public void trigger(Bitmap value) {
+    final public void trigger(Bitmap value) {
         
     	Bitmap v = onCameraProvided(value);
-
         notify(v);
     }
 }

@@ -1,12 +1,11 @@
 package fr.diaspec.webcam.generated;
 
-
 public abstract class AbstractRunner extends CommonRuncode {
 
     // Taxonomy components (actions, sources)
-    private final        AbstractCamera c  = new Camera();
+    private static final AbstractCamera c  = new Camera();
     private static final AbstractIP     ip = new IP();
-    private final        AbstractScreen s  = new Screen();
+    private static final AbstractScreen s  = new Screen();
   
     // to-be-implemented components: (contexts, controllers)
     public abstract AbstractProcessPicture  getProcessPicture();
@@ -24,8 +23,9 @@ public abstract class AbstractRunner extends CommonRuncode {
     	
     	// IP is an odd one out, it should be initialised first,
     	// so it has a chance to fetch stuff from the network before being polled.
-    	// ugly hack. TODO consider just killing this.
-    	ip.init(this);
+    	// ugly hack. TODO consider just killing this. the user will be informed
+    	// if they take a picture and internet wasn't ready yet.
+    	//ip.init(this);
     	
         AbstractMakeAd ad = getMakeAd();
         AbstractProcessPicture mp = getProcessPicture();

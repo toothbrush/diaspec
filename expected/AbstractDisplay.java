@@ -6,31 +6,31 @@ public abstract class AbstractDisplay implements Controller, Subscriber<Bitmap> 
 
 	private AbstractRunner runner;
 
-	public void init(AbstractRunner runner) {
+	final public void init(AbstractRunner runner) {
 		this.runner = runner;
 	}
 
 	//public is the only modifier allowed in interface declarations,
 	//which is where trigger() comes from
 	@Override
-	public void trigger(Bitmap value) {
+	final public void trigger(Bitmap value) {
 		ScreenProxy proxy = new ScreenProxy();
 		proxy.setAccessible(true);
 		whenProvidedComposeDisplay(value, proxy);
 		proxy.setAccessible(false);
 	}
 
-	protected class ScreenProxy {
+	final protected class ScreenProxy {
 
 		protected ScreenProxy() {}
 
 		private boolean isAccessible = false;
 
-		private void setAccessible(boolean isAccessible) {
+		final private void setAccessible(boolean isAccessible) {
 			this.isAccessible = isAccessible;
 		}
 
-		public void doScreenAction(Bitmap newVisual) {
+		final public void doScreenAction(Bitmap newVisual) {
 			if (isAccessible) {
 				runner.getScreen().doScreenAction(newVisual);
 			} else {
