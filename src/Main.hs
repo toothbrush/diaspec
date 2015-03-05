@@ -21,13 +21,15 @@ import Data.Char (isAlpha)
 import System.Console.CmdArgs
 import System.FilePath
 import System.Environment (getArgs, withArgs)
+import System.Exit
+import Control.Monad (when)
 
 data DSOptions = Pretty { inFile :: FilePath
-                        , output :: Maybe FilePath}
+                        , output :: Maybe FilePath }
                | Racket { inFile :: FilePath
-                        , output :: Maybe FilePath}
-               | Java   { inFile :: FilePath }
-                       -- , outDir :: FilePath}
+                        , output :: Maybe FilePath }
+               | Java   { inFile :: FilePath
+                        , outDir :: FilePath }
                deriving (Show, Data, Typeable)
 
 typSpec = typ "SPEC"
@@ -35,24 +37,33 @@ typSpec = typ "SPEC"
 pretty = Pretty { inFile = def &= argPos 0 &= typSpec
                 , output = Nothing &= outhelp &= typFile
                 } &= help "Neaten up a Diaspec file."
---                  &= details  [ "Examples:"
---                              , "Blah blah blah."
---                              ]
-java   = Java   { inFile  = def &= argPos 0 &= typSpec
-                -- , outDir = def &= argPos 1 &= typDir
+java   = Java   { inFile  = def   &= argPos 0 &= typSpec
+                , outDir  = "gen" &= typDir &= jdirhelp
                 } &= auto
                   &= help "Generate Java framework from spec. (default mode)"
+                  &= details  [ "  *Please note:*"
+                              , "    Java framework will potentially overwrite"
+                              , "    files in the given directory. Default is \"gen/\"."
+                              ]
 racket = Racket { inFile = def &= argPos 0 &= typSpec
                 , output = Nothing &= outhelp &= typFile
                 } &= help "Convert Diaspec into Racket spec."
 
-outhelp = help "Write to FILE. Default = STDOUT."
+outhelp  = help "Write to FILE."
+jdirhelp = help "Place framework in DIR."
 
 mode = cmdArgsMode $
        modes [java, pretty, racket]
-       &= program "diaspec"
-       &= help "Compile Diaspec specifications to various useful formats."
+       &= program _PROGRAM_NAME
+       &= summary (_PROGRAM_INFO ++ ", " ++ _COPYRIGHT)
+       &= help _PROGRAM_ABOUT
        &= helpArg [explicit, name "help", name "h"]
+
+_PROGRAM_NAME = "diaspec"
+_PROGRAM_VERSION = "0.1"
+_PROGRAM_INFO = _PROGRAM_NAME ++ " version " ++ _PROGRAM_VERSION
+_PROGRAM_ABOUT ="Compile Diaspec specifications to various useful formats."
+_COPYRIGHT = "© 2015 Paul van der Walt"
 
 getOpts :: IO DSOptions
 getOpts = cmdArgsRun mode
@@ -71,10 +82,11 @@ optionHandler (Pretty infile out) = do
 optionHandler (Racket infile out) = do
        putStrLn "[RACKET] Pretty-print mode selected."
        handlePretty prettyRacket infile out
-optionHandler (Java infile)       = do
-            --(Java infile outdir)->
+optionHandler (Java infile outdir)= do
        putStrLn "[JAVA] Generate framework."
-       handleJava infile ""
+       when (null outdir) $ putStrLn "--outdir blank!" >> exitWith (ExitFailure 1)
+    
+       handleJava infile outdir
 
 readSomething :: FilePath -> IO (String, String)
 readSomething "-" = do putStrLn "Reading from STDIN."
