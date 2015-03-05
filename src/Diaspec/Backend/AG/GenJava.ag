@@ -128,7 +128,9 @@ sem Publish
 -- | add proxy or not
 sem Get
   | Nothing   lhs.args = [ExpName (Name [Ident "value"])] -- no proxy needed.
-  | Just      lhs.args = undefined
+  | Just      lhs.args = undefined -- TODO all the proxy stuff...
+
+-- TODO the AbstractRunner class...
 
 -- sem ControllerInteraction
 --   | WhenContext     lhs.genJ = text "when_provided" >#< text @name
