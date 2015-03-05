@@ -98,8 +98,7 @@ sem ContextInteraction
                                       (Just (InitExp (MethodInv (MethodCall
                                                (Name [Ident @loc.methName]) @get.args))))],
                                    @pub.notify]))
-                              -- , init final runner -- TODO
-                              ]
+                              ] ++ runnerInit True
   | WhenRequired lhs.classImplements = undefined
                  lhs.methods  = []
 
@@ -129,8 +128,6 @@ sem Publish
 sem Get
   | Nothing   lhs.args = [ExpName (Name [Ident "value"])] -- no proxy needed.
   | Just      lhs.args = undefined -- TODO all the proxy stuff...
-
--- TODO the AbstractRunner class...
 
 -- sem ControllerInteraction
 --   | WhenContext     lhs.genJ = text "when_provided" >#< text @name
@@ -174,7 +171,8 @@ clsAction pkg clname ty =
   clsResource pkg clname ty 
     Nothing -- does not extend anything
     [ClassRefType (ClassType [(Ident "Action",[])])] -- implements Action
-    [actionMethod clname ty] -- only one method as member
+    ([actionMethod clname ty]
+      ++ runnerInit False)
 
 clsSource :: Maybe (PackageDecl)  -- ^ package name
           -> String  -- ^ class name
@@ -185,7 +183,8 @@ clsSource pkg clname ty =
    (Just -- all sources extend publisher, with their type as Generics param.
     (ClassRefType (ClassType [(Ident "Publisher", [ActualType ty])])))
    [ClassRefType  (ClassType [(Ident "Source",    [])])] -- implements Source interface.
-   [sourceMethod clname ty] -- one method in the body
+   ([sourceMethod clname ty]
+     ++ runnerInit False)
 
 publicFinal       = [Public,    Final   ]
 publicAbstract    = [Public,    Abstract]
@@ -221,7 +220,7 @@ sourceMethod :: String -- ^ name of source
 sourceMethod nm ty = methodDecl protectedAbstract
                            (Just$ RefType ty)
                            ("get"++nm++"Value") [] -- no parameters
-                           Nothing -- TODO add init() runner etc, with public 
+                           Nothing
   
 actionMethod :: String -- ^ name of source
              -> RefType -- ^ expected return type.
@@ -230,5 +229,21 @@ actionMethod nm ty = methodDecl protectedAbstract
                            Nothing 
                            ("do"++nm++"Action")
                            [FormalParam [] (RefType ty) False (VarId$ Ident "param")] -- formal parameters.
-                           Nothing -- TODO add init() runner etc, with public 
+                           Nothing
+
+runnerInit :: Bool -- ^ should it be Final?
+           -> [Decl]
+runnerInit b    = [ MemberDecl (FieldDecl [] (RefType (ClassRefType (ClassType [(Ident "AbstractRunner",[])])))
+                                [VarDecl (VarId (Ident "runner")) Nothing])
+                  , MemberDecl (MethodDecl (modifiers b) [] Nothing
+                                (Ident "init")
+                                [FormalParam [] (RefType (ClassRefType (ClassType [(Ident "AbstractRunner",[])]))) False (VarId (Ident "runner"))] []
+                                (MethodBody (Just (Block [BlockStmt (ExpStmt (Assign (FieldLhs (PrimaryFieldAccess This (Ident "runner"))) EqualA (ExpName (Name [Ident "runner"]))))]))))
+                  ]
+  where modifiers True = [Final, Protected]
+        modifiers False = [Protected]
+
+
+
+                           
 }
