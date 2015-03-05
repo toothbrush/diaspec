@@ -3,12 +3,12 @@ imports
 import UU.Pretty
 }
 
- -- possible types for our components
-data Type
-     | Bool
-     | Int
-     | String
-     | Picture
+-- possible types for our components
+data DType
+     | DBool
+     | DInt
+     | DString
+     | DPicture
 
 data Specification 
      | S name :: String
@@ -16,18 +16,18 @@ data Specification
 
 data Declaration
    | Source      name  :: String
-                 ty    :: Type
+                 ty    :: DType
    | Action      name  :: String
-                 ty    :: Type
+                 ty    :: DType
    | Context     name  :: String
-     	         ty    :: Type
+     	         ty    :: DType
                  contr :: ContextInteraction
    | Controller  name  :: String
     		 contr :: ControllerInteraction
 
 data ContextInteraction
      | WhenRequired     get :: Get
-     | WhenProvided    name ::  String
+     | WhenProvided    name :: String
                         get :: Get
 		        pub :: Publish
 
@@ -42,8 +42,8 @@ data Publish
      | MaybePublish
 
 {
-deriving instance Eq Type
-deriving instance Show Type
+deriving instance Eq DType
+deriving instance Show DType
 
 deriving instance Eq Declaration
 deriving instance Show Declaration

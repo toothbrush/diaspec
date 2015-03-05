@@ -1,11 +1,8 @@
-{
-}
-
 ----------------------------------
 -- Pretty printing
 ----------------------------------
 
-attr Declaration Type ContextInteraction ControllerInteraction Get Publish
+attr Declaration DType ContextInteraction ControllerInteraction Get Publish
   syn ppRacket :: {PP_Doc}  -- pretty printing (multiline mode)
 
 sem Declaration
@@ -21,11 +18,11 @@ sem Publish
   | AlwaysPublish    lhs.ppRacket = text $ show @self
   | MaybePublish     lhs.ppRacket = text $ show @self
 
-sem Type
-  | Bool    lhs.ppRacket = text "Boolean"
-  | Int     lhs.ppRacket = text "Integer"
-  | Picture lhs.ppRacket = text $ show @self
-  | String  lhs.ppRacket = text $ show @self
+sem DType
+  | DBool    lhs.ppRacket = text "Boolean"
+  | DInt     lhs.ppRacket = text "Integer"
+  | DPicture lhs.ppRacket = text $ show @self
+  | DString  lhs.ppRacket = text $ show @self
 
 sem ControllerInteraction
   | WhenContext     lhs.ppRacket = text "when-provided" >#< text @name

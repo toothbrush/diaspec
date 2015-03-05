@@ -1,12 +1,8 @@
-{
--- import Diaspec.Types
-}
-
 ----------------------------------
 -- Pretty printing
 ----------------------------------
 
-attr Type ContextInteraction ControllerInteraction Declaration Get Publish
+attr DType ContextInteraction ControllerInteraction Declaration Get Publish
   syn ppDia :: {PP_Doc}  -- pretty printing (multiline mode)
 
 sem Declaration
@@ -23,11 +19,11 @@ sem Publish
   | AlwaysPublish    lhs.ppDia = text $ show @self
   | MaybePublish     lhs.ppDia = text $ show @self
 
-sem Type
-  | Bool    lhs.ppDia = text $ show @self
-  | Int     lhs.ppDia = text $ show @self
-  | Picture lhs.ppDia = text $ show @self
-  | String  lhs.ppDia = text $ show @self
+sem DType
+  | DBool    lhs.ppDia = text $ show @self
+  | DInt     lhs.ppDia = text $ show @self
+  | DPicture lhs.ppDia = text $ show @self
+  | DString  lhs.ppDia = text $ show @self
 
 sem ControllerInteraction
   | WhenContext     lhs.ppDia = text "when_provided" >#< text @name
