@@ -1,6 +1,8 @@
 -- Copyright 2015 © Paul van der Walt <paul.vanderwalt@inria.fr>
 
 {-# LANGUAGE DeriveDataTypeable #-}
+
+-- cmdargs breaks without common subexpression elimination turned off.
 {-# OPTIONS_GHC -fno-cse #-}
 
 module Main where
@@ -17,6 +19,7 @@ import UU.Pretty (disp, render, PP_Doc (..))
 import Data.List.Utils (split)
 import Data.Char (isAlpha)
 import System.Console.CmdArgs
+import System.FilePath
 
 data DiaspecCompiler = Pretty { inFile :: FilePath
                               , outFile :: Maybe FilePath}
@@ -37,7 +40,7 @@ racket = Racket { inFile = def &= argPos 0 &= typFile
 
 -- outFileHelp = Nothing &= help "Output file. Default to STDOUT." &= typFile
 
-mode = cmdArgsMode $ modes [racket, java, pretty] -- &= help "bluh?" &= program "diaspec"
+mode = cmdArgsMode $ modes [racket, java, pretty] &= program "diaspec" -- &= help "bluh?"
 
 main :: IO ()
 main = do
@@ -66,8 +69,8 @@ handleJava i o = do
            _   -> do putStrLn ("Dealing with file: " ++ show i)
                      putStr "\n\n----\n\n"
                      readFile i
-  let pn  = filter isAlpha $ head (split "." i)
-  let res = ((\ ds -> genJava (S pn ds)) . parseGrammar . alexScanTokens) spec
+  let pn  = filter isAlpha $ takeBaseName i
+  let res = ((genJava . S pn) . parseGrammar . alexScanTokens) spec
   mapM_ (putStrLn . prettyPrint) res
 
 handlePretty :: (Specification -> PP_Doc) -> FilePath -> Maybe FilePath -> IO ()
@@ -77,8 +80,8 @@ handlePretty pf i o = do
                      getContents
            _   -> do putStrLn ("Dealing with file: " ++ show i)
                      readFile i
-  let pn  = filter isAlpha $ head (split "." i)
-  let res = ((\ds -> pf (S pn ds)) . parseGrammar . alexScanTokens) spec
+  let pn  = filter isAlpha $ takeBaseName i
+  let res = ((pf . S pn) . parseGrammar . alexScanTokens) spec
   render res 80
   case o of
     Nothing -> return ()
