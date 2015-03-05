@@ -39,6 +39,7 @@ attr ContextInteraction
   syn classImplements :: {[RefType]}
   inh tyEnv    :: {TyEnv} -- environment to keep track of output types of components.
   inh ty      :: {DType}
+  inh thisCtxNm :: {String}
   syn methods :: {[Decl]}
 
 attr Publish
@@ -74,6 +75,7 @@ sem Declaration
   | Context     lhs.genJ = clsContext @lhs.pkg @name @contr.classImplements -- implements, which depend on IC.
                            @ty.self @contr.methods
                 contr.ty = @ty.self
+                contr.thisCtxNm = @name
                 lhs.myType = [(@name, @ty.self)]
   | Controller  lhs.genJ = undefined
                 lhs.myType = []
@@ -87,7 +89,7 @@ sem ContextInteraction
                  loc.methName = "on" ++ @name ++ "Provided"
                  lhs.methods= [ methodDecl protectedAbstract (Just @pub.ret) --return
                                 @loc.methName
-                                [FormalParam [] (RefType @loc.inType) False (VarId (Ident "newValue"))]
+                                [FormalParam [] (RefType @loc.inType) False (VarId (Ident "newValue"))] -- TODO proxy??
                                 Nothing
                               , methodDecl publicFinal Nothing
                                 "trigger"
@@ -99,8 +101,25 @@ sem ContextInteraction
                                                (Name [Ident @loc.methName]) @get.args))))],
                                    @pub.notify]))
                               ] ++ runnerInit True
-  | WhenRequired lhs.classImplements = undefined
-                 lhs.methods  = []
+  | WhenRequired lhs.classImplements = [ClassRefType (ClassType [(Ident "Context",[])])]
+                 loc.methName = "when" ++ @lhs.thisCtxNm ++ "Required"
+                 loc.myType  = jtype . fromJust $ lookup @lhs.thisCtxNm @lhs.tyEnv
+                 lhs.methods= [ methodDecl protectedAbstract
+                                (Just$ RefType @loc.myType) --return TODO simple inh instead of lookup?
+                                @loc.methName
+                                [] -- TODO proxy??
+                                Nothing
+                              , methodDecl [Protected, Final] Nothing
+                                "requireValue"
+                                [] -- no args
+                                (Just
+                                 (Block
+                                  [LocalVars [] (RefType @loc.myType) [VarDecl (VarId (Ident "v"))
+                                      (Just (InitExp (MethodInv (MethodCall
+                                               (Name [Ident @loc.methName]) [] -- TODO proxy args
+                                                                ))))],
+                                   BlockStmt (Return (Just (ExpName (Name [Ident "v"]))))]))
+                              ] ++ runnerInit True
 
 -- | determines the return type of a context.
 sem Publish
@@ -233,15 +252,18 @@ actionMethod nm ty = methodDecl protectedAbstract
 
 runnerInit :: Bool -- ^ should it be Final?
            -> [Decl]
-runnerInit b    = [ MemberDecl (FieldDecl [] (RefType (ClassRefType (ClassType [(Ident "AbstractRunner",[])])))
+runnerInit b    = [ MemberDecl (FieldDecl (runnerVarModifs b) (RefType (ClassRefType (ClassType [(Ident "AbstractRunner",[])])))
                                 [VarDecl (VarId (Ident "runner")) Nothing])
-                  , MemberDecl (MethodDecl (modifiers b) [] Nothing
+                  , MemberDecl (MethodDecl (runnerMethModifs b) [] Nothing
                                 (Ident "init")
                                 [FormalParam [] (RefType (ClassRefType (ClassType [(Ident "AbstractRunner",[])]))) False (VarId (Ident "runner"))] []
                                 (MethodBody (Just (Block [BlockStmt (ExpStmt (Assign (FieldLhs (PrimaryFieldAccess This (Ident "runner"))) EqualA (ExpName (Name [Ident "runner"]))))]))))
                   ]
-  where modifiers True = [Final, Protected]
-        modifiers False = [Protected]
+  where runnerMethModifs True = [Final, Protected]
+        runnerMethModifs False = [Protected]
+        runnerVarModifs  True = [Private]
+        runnerVarModifs  False = [Protected]
+                                
 
 
 
