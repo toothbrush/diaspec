@@ -254,10 +254,10 @@ runnerInit :: Bool -- ^ should it be Final?
            -> [Decl]
 runnerInit b    = [ MemberDecl (FieldDecl (runnerVarModifs b) (RefType (ClassRefType (ClassType [(Ident "AbstractRunner",[])])))
                                 [VarDecl (VarId (Ident "runner")) Nothing])
-                  , MemberDecl (MethodDecl (runnerMethModifs b) [] Nothing
-                                (Ident "init")
-                                [FormalParam [] (RefType (ClassRefType (ClassType [(Ident "AbstractRunner",[])]))) False (VarId (Ident "runner"))] []
-                                (MethodBody (Just (Block [BlockStmt (ExpStmt (Assign (FieldLhs (PrimaryFieldAccess This (Ident "runner"))) EqualA (ExpName (Name [Ident "runner"]))))]))))
+                  , methodDecl (runnerMethModifs b) Nothing
+                    "init"
+                    [FormalParam [] (RefType (ClassRefType (ClassType [(Ident "AbstractRunner",[])]))) False (VarId (Ident "runner"))]
+                    (Just (Block [BlockStmt (ExpStmt (Assign (FieldLhs (PrimaryFieldAccess This (Ident "runner"))) EqualA (ExpName (Name [Ident "runner"]))))]))
                   ]
   where runnerMethModifs True = [Final, Protected]
         runnerMethModifs False = [Protected]
