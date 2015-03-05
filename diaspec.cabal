@@ -2,7 +2,7 @@
 -- http://haskell.org/cabal/users-guide/
 
 name:                diaspec
-version:             0.1.0.0
+version:             0.1.1
 synopsis:            Simplified DiaSpec compiler
 description:         DiaSpec compiler to convert simplified grammar into Java framework, Racket specs, etc.
 homepage:            http://people.bordeaux.inria.fr/pwalt/

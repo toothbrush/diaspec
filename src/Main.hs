@@ -23,6 +23,8 @@ import System.FilePath
 import System.Environment (getArgs, withArgs)
 import System.Exit
 import Control.Monad (when)
+import Paths_diaspec (version)
+import Data.Version (showVersion)
 
 data DSOptions = Pretty { inFile :: FilePath
                         , output :: Maybe FilePath }
@@ -57,11 +59,12 @@ mode = cmdArgsMode $
        &= program _PROGRAM_NAME
        &= summary (_PROGRAM_INFO ++ ", " ++ _COPYRIGHT)
        &= help _PROGRAM_ABOUT
+       &= versionArg [explicit, name "version", name "v", summary _PROGRAM_INFO]
        &= helpArg [explicit, name "help", name "h"]
 
 _PROGRAM_NAME = "diaspec"
-_PROGRAM_VERSION = "0.1"
-_PROGRAM_INFO = _PROGRAM_NAME ++ " version " ++ _PROGRAM_VERSION
+_PROGRAM_VERSION = showVersion version
+_PROGRAM_INFO = _PROGRAM_NAME ++ " v" ++ _PROGRAM_VERSION
 _PROGRAM_ABOUT ="Compile Diaspec specifications to various useful formats."
 _COPYRIGHT = "© 2015 Paul van der Walt"
 
@@ -105,7 +108,6 @@ writeStng (Just "-") _ = return () -- we already write to STDOUT
 writeStng (Just f)   c = do putStrLn$"----\n\nWriting to file: " ++ show f ++ "."
                             writeFile f c
 
--- TODO less fugly method of building Specification from [Declaration] :/
 handleJava :: FilePath -> FilePath -> IO ()
 handleJava i   o = do (pn, spec) <- readSomething i
                       let res = ((genJava . S pn) . parseGrammar . alexScanTokens) spec
