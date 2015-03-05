@@ -1,5 +1,6 @@
+imports
 {
-import qualified Language.Java.Syntax as J
+import Language.Java.Syntax
 import Data.String.Utils (split)
 }
 
@@ -11,16 +12,16 @@ import Data.String.Utils (split)
 
 attr Declaration
   inh projName :: {String}  -- the package name, derived from specs filename
-  syn genJ     :: {J.CompilationUnit}  -- pretty printing (multiline mode)
+  syn genJ     :: {CompilationUnit}  -- pretty printing (multiline mode)
 
-attr Type
-  syn genJ :: {J.RefType}
+attr DType
+  syn genJ :: {RefType}
 
-sem Type
-  | Bool    lhs.genJ = jtype @self
-  | Int     lhs.genJ = jtype @self
-  | Picture lhs.genJ = jtype @self
-  | String  lhs.genJ = jtype @self
+sem DType
+  | DBool    lhs.genJ = jtype @self
+  | DInt     lhs.genJ = jtype @self
+  | DPicture lhs.genJ = jtype @self
+  | DString  lhs.genJ = jtype @self
 
 
 sem Declaration
@@ -28,106 +29,118 @@ sem Declaration
                 loc.pkg  = pack @lhs.projName 
   | Action      lhs.genJ = clsAction @loc.pkg @name @ty.genJ
                 loc.pkg  = pack @lhs.projName 
-  | Context     lhs.genJ = undefined -- clsContext @name @ty.genJ 
+  | Context     lhs.genJ = clsContext @loc.pkg @name Nothing -- input, which depends on interaction contract.
+                           @ty.genJ -- must add intrcontr
                 loc.pkg  = pack @lhs.projName 
   | Controller  lhs.genJ = undefined
                 loc.pkg  = pack @lhs.projName 
 
--- | determines the return type of a context.
--- sem Publish
---   | AlwaysPublish    lhs.genJ = text $ show @self
---   | MaybePublish     lhs.genJ = text $ show @self
--- 
--- sem ControllerInteraction
---   | WhenContext     lhs.genJ = text "when_provided" >#< text @name
---                                 >-< text "do" >#< text @act
--- | influences name, 
+-- | influences name of member method, 
 -- sem ContextInteraction
 --   | WhenRequired    lhs.genJ = text "when_required" >-< @get.genJ
 --   | WhenProvided    lhs.genJ = text "when_provided" >#< text @name
 --                                 >-< @get.genJ >-< @pub.genJ
 -- 
+-- | determines the return type of a context.
+-- sem Publish
+--   | AlwaysPublish    lhs.genJ = text $ show @self
+--   | MaybePublish     lhs.genJ = text $ show @self
+-- 
 -- | add proxy or not
 -- sem Get
 --   | Nothing   lhs.genJ = empty
 --   | Just      lhs.genJ = text "get" >#< text @just
+-- 
+-- sem ControllerInteraction
+--   | WhenContext     lhs.genJ = text "when_provided" >#< text @name
+--                                 >-< text "do" >#< text @act
 
 {
+clsContext :: Maybe (PackageDecl)
+           -> String  -- ^ class name
+           -> Maybe RefType -- ^ input type of the context, if a subscriber.
+           -> RefType -- ^ output type of the context.
+           -> CompilationUnit -- ^ gives back full class.
+clsContext pkg clname i ty =
+  clsResource pkg clname ty 
+    Nothing -- does not extend anything
+    [ClassRefType (ClassType [(Ident "Action",[])])] -- implements Action
+    [MemberDecl $ actionMethod clname ty] -- only one method as member
 
-clsResource :: Maybe (J.PackageDecl)
+clsResource :: Maybe (PackageDecl)
             -> String  -- ^ class name
-            -> J.RefType -- ^ type of the resource.
-            -> Maybe J.RefType -- ^ does the class extend anything?
-            -> [J.RefType] -- ^ what does it implement?
-            -> [J.Decl] -- ^ body of the class
-            -> J.CompilationUnit -- ^ give back a complete class
+            -> RefType -- ^ type of the resource.
+            -> Maybe RefType -- ^ does the class extend anything?
+            -> [RefType] -- ^ what does it implement?
+            -> [Decl] -- ^ body of the class
+            -> CompilationUnit -- ^ give back a complete class
 clsResource pkg clname ty extends implements body =
-  J.CompilationUnit pkg [] -- no imports
-  [J.ClassTypeDecl $ J.ClassDecl publicAbstract
-   (J.Ident$ "Abstract"++clname)
+  CompilationUnit pkg [] -- no imports
+  [ClassTypeDecl $ ClassDecl publicAbstract
+   (Ident$ "Abstract"++clname)
    [] -- not a generic class, hence no type parameters
    extends implements
-   (J.ClassBody body)]
+   (ClassBody body)]
 
-clsAction :: Maybe (J.PackageDecl)
+clsAction :: Maybe (PackageDecl)
           -> String  -- ^ class name
-          -> J.RefType -- ^ input type of the action.
-          -> J.CompilationUnit -- ^ gives back full class.
+          -> RefType -- ^ input type of the action.
+          -> CompilationUnit -- ^ gives back full class.
 clsAction pkg clname ty =
   clsResource pkg clname ty 
     Nothing -- does not extend anything
-    [J.ClassRefType (J.ClassType [(J.Ident "Action",[])])] -- implements Action
-    [J.MemberDecl $ actionMethod clname ty] -- only one method as member
+    [ClassRefType (ClassType [(Ident "Action",[])])] -- implements Action
+    [MemberDecl $ actionMethod clname ty] -- only one method as member
 
-clsSource :: Maybe (J.PackageDecl)  -- ^ package name
+clsSource :: Maybe (PackageDecl)  -- ^ package name
           -> String  -- ^ class name
-          -> J.RefType -- ^ output type of the source.
-          -> J.CompilationUnit -- ^ gives back a full class.
+          -> RefType -- ^ output type of the source.
+          -> CompilationUnit -- ^ gives back a full class.
 clsSource pkg clname ty =
   clsResource pkg clname ty 
    (Just -- all sources extend publisher, with their type as Generics param.
-    (J.ClassRefType (J.ClassType [(J.Ident "Publisher", [J.ActualType ty])])))
-   [J.ClassRefType  (J.ClassType [(J.Ident "Source",    [])])] -- implements Source interface.
-   [J.MemberDecl $ sourceMethod clname ty] -- one method in the body
+    (ClassRefType (ClassType [(Ident "Publisher", [ActualType ty])])))
+   [ClassRefType  (ClassType [(Ident "Source",    [])])] -- implements Source interface.
+   [MemberDecl $ sourceMethod clname ty] -- one method in the body
 
-publicAbstract    = [J.Public,    J.Abstract]
-protectedAbstract = [J.Protected, J.Abstract]
+publicAbstract    = [Public,    Abstract]
+protectedAbstract = [Protected, Abstract]
 
 pack n = packagify $ concat ["fr.diaspec.", n, ".generated"]
-  where packagify s = Just (J.PackageDecl (J.Name (map J.Ident (split "." s))))
+  where packagify s = Just (PackageDecl (Name (map Ident (split "." s))))
 
-jtype :: Type -> J.RefType
+jtype :: DType -> RefType
 jtype t = case t of
-     Bool    -> wrap "Boolean"
-     Int     -> wrap "Integer"
-     String  -> wrap "String"
-     Picture -> wrap "Bitmap" 
+     DBool    -> wrap "Boolean"
+     DInt     -> wrap "Integer"
+     DString  -> wrap "String"
+     DPicture -> wrap "Bitmap" 
   where
-    wrap :: String -> J.RefType
-    wrap s = J.ClassRefType (J.ClassType
-                             [(J.Ident s,[])])
+    wrap :: String -> RefType
+    wrap s = ClassRefType (ClassType
+                             [(Ident s,[])])
 
-methodDecl :: [J.Modifier] -- ^ scope modifiers, abstract, final
-           -> Maybe J.Type -- ^ expected return type.
+methodDecl :: [Modifier] -- ^ scope modifiers, abstract, final
+           -> Maybe Type -- ^ expected return type.
            -> String       -- ^ desired method name
-           -> [J.FormalParam] -- ^ method arguments
-           -> J.MemberDecl -- ^ a method declaration.
-methodDecl scope ret nm args = J.MethodDecl scope [] ret (J.Ident nm) args
+           -> [FormalParam] -- ^ method arguments
+           -> MemberDecl -- ^ a method declaration.
+methodDecl scope ret nm args = MethodDecl scope [] ret (Ident nm) args
                            [] -- no exceptions
-                           (J.MethodBody Nothing)
+                           (MethodBody Nothing)
   
 sourceMethod :: String -- ^ name of source
-             -> J.RefType -- ^ expected return type.
-             -> J.MemberDecl
+             -> RefType -- ^ expected return type.
+             -> MemberDecl
 sourceMethod nm ty = methodDecl protectedAbstract
-                           (Just$ J.RefType ty)
+                           (Just$ RefType ty)
                            ("get"++nm++"Value") [] -- no parameters
   
 actionMethod :: String -- ^ name of source
-             -> J.RefType -- ^ expected return type.
-             -> J.MemberDecl
+             -> RefType -- ^ expected return type.
+             -> MemberDecl
 actionMethod nm ty = methodDecl protectedAbstract
                            Nothing 
                            ("do"++nm++"Action")
-                           [J.FormalParam [] (J.RefType ty) False (J.VarId$ J.Ident "param")] -- formal parameters.
+                           [FormalParam [] (RefType ty) False (VarId$ Ident "param")] -- formal parameters.
 }
