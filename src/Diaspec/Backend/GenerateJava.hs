@@ -20,5 +20,7 @@ genJava (S pn s) = map (\d -> genJ_Syn_Declaration (wrap_Declaration (sem_Declar
                                                         (inhDeclaration pn))) (sort s)
 
 inhDeclaration :: String -> Inh_Declaration
-inhDeclaration pn = Inh_Declaration {projName_Inh_Declaration=pn}
+inhDeclaration pn = Inh_Declaration { projName_Inh_Declaration = pn
+                                    , tyEnv_Inh_Declaration    = []
+                                    }
 

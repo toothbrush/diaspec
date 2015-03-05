@@ -14,7 +14,6 @@ sem Declaration
   | Controller  lhs.ppDia = text "controller" >#< text @name >#< "{" >-<
 				  (indent 4 @contr.ppDia) >-< "}"
 
-
 sem Publish
   | AlwaysPublish    lhs.ppDia = text $ show @self
   | MaybePublish     lhs.ppDia = text $ show @self

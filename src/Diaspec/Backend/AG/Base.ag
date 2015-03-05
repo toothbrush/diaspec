@@ -10,9 +10,11 @@ data DType
      | DString
      | DPicture
 
+type Declarations = [Declaration]
+
 data Specification 
      | S name :: String
-         ds   :: {[Declaration]}
+         ds   :: Declarations
 
 data Declaration
    | Source      name  :: String

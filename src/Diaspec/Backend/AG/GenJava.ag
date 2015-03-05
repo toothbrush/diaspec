@@ -4,42 +4,62 @@ import Language.Java.Syntax
 import Data.String.Utils (split)
 }
 
+{
+type TyEnv = [(String, DType)]
+}
+
 ----------------------------------
 -- Java generation
 ----------------------------------
--- attr Specification
-  -- inh projName :: {String}
+
+-- TODO split the two AGs: for pprinting and for compilation.
+attr Specification
+  syn genJ     :: {[CompilationUnit]}
+
+attr Declarations
+  syn genJ     :: {[CompilationUnit]}
 
 attr Declaration
   inh projName :: {String}  -- the package name, derived from specs filename
   syn genJ     :: {CompilationUnit}  -- pretty printing (multiline mode)
+  inh tyEnv    :: {TyEnv} -- environment to keep track of output types of components.
 
 attr DType
-  syn genJ :: {RefType}
+  syn javaType :: {RefType}
+
+attr ContextInteraction
+  syn classImplements :: {[RefType]}
+
+sem Specification
+  | S        lhs.genJ = @ds.genJ 
+
+sem Declarations
+  | Cons     lhs.genJ = @hd.genJ : @tl.genJ
+  | Nil      lhs.genJ = []
 
 sem DType
-  | DBool    lhs.genJ = jtype @self
-  | DInt     lhs.genJ = jtype @self
-  | DPicture lhs.genJ = jtype @self
-  | DString  lhs.genJ = jtype @self
-
+  | DBool    lhs.javaType = jtype @self
+  | DInt     lhs.javaType = jtype @self
+  | DPicture lhs.javaType = jtype @self
+  | DString  lhs.javaType = jtype @self
 
 sem Declaration
-  | Source      lhs.genJ = clsSource @loc.pkg @name @ty.genJ
+  | Source      lhs.genJ = clsSource @loc.pkg @name @ty.javaType
                 loc.pkg  = pack @lhs.projName 
-  | Action      lhs.genJ = clsAction @loc.pkg @name @ty.genJ
+  | Action      lhs.genJ = clsAction @loc.pkg @name @ty.javaType
                 loc.pkg  = pack @lhs.projName 
   | Context     lhs.genJ = clsContext @loc.pkg @name Nothing -- input, which depends on interaction contract.
-                           @ty.genJ -- must add intrcontr
+                           @ty.self -- must add intrcontr
                 loc.pkg  = pack @lhs.projName 
   | Controller  lhs.genJ = undefined
                 loc.pkg  = pack @lhs.projName 
 
 -- | influences name of member method, 
--- sem ContextInteraction
---   | WhenRequired    lhs.genJ = text "when_required" >-< @get.genJ
---   | WhenProvided    lhs.genJ = text "when_provided" >#< text @name
---                                 >-< @get.genJ >-< @pub.genJ
+sem ContextInteraction
+  | WhenProvided    lhs.classImplements = [ClassRefType (ClassType [(Ident "Context",[])]),
+                                           ClassRefType (ClassType [(Ident "Subscriber",[ActualType$ jtype DBool])])]
+  | WhenRequired    lhs.classImplements = undefined
+
 -- 
 -- | determines the return type of a context.
 -- sem Publish
@@ -59,13 +79,15 @@ sem Declaration
 clsContext :: Maybe (PackageDecl)
            -> String  -- ^ class name
            -> Maybe RefType -- ^ input type of the context, if a subscriber.
-           -> RefType -- ^ output type of the context.
+           -> DType -- ^ output type of the context.
            -> CompilationUnit -- ^ gives back full class.
 clsContext pkg clname i ty =
-  clsResource pkg clname ty 
-    Nothing -- does not extend anything
-    [ClassRefType (ClassType [(Ident "Action",[])])] -- implements Action
-    [MemberDecl $ actionMethod clname ty] -- only one method as member
+  clsResource pkg clname (jtype ty)
+    -- extends Publisher of Ty:
+    (Just (ClassRefType (ClassType [(Ident "Publisher",[ActualType$ jtype ty])])))
+    -- implements:
+    [ClassRefType (ClassType [(Ident "Context",[])])] -- implements Context and perhaps subscriber
+    [MemberDecl $ actionMethod clname (jtype ty)] -- only one method as member
 
 clsResource :: Maybe (PackageDecl)
             -> String  -- ^ class name
