@@ -100,3 +100,5 @@ proxyOn proxyName vName =
 
 proxyOff proxyName vName =
   [BlockStmt (ExpStmt (MethodInv (MethodCall (Name [Ident vName,Ident "setAccessible"]) [Lit (Boolean False)])))]
+
+

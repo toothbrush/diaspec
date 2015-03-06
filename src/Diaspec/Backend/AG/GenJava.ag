@@ -34,11 +34,14 @@ attr Declaration
 attr DType
   syn javaType :: {RefType}
 
+
 attr ContextInteraction
+  inh ty      :: {DType}
+
+attr ContextInteraction ControllerInteraction
   syn classImplements :: {[RefType]}
   inh tyEnv    :: {TyEnv} -- environment to keep track of output types of components.
-  inh ty      :: {DType}
-  inh thisCtxNm :: {String}
+  inh thisCName :: {String}
   syn methods :: {[Decl]}
 
 attr Publish
@@ -79,9 +82,10 @@ sem Declaration
   | Context     lhs.genJ = clsContext @lhs.pkg @name @contr.classImplements -- implements, which depend on IC.
                            @ty.self @contr.methods
                 contr.ty = @ty.self
-                contr.thisCtxNm = @name
+                contr.thisCName = @name
                 lhs.myType = [(@name, @ty.self)]
-  | Controller  lhs.genJ = undefined
+  | Controller  lhs.genJ   = clsController @lhs.pkg @name @contr.classImplements @contr.methods
+                contr.thisCName = @name
                 lhs.myType = []
 
 -- | influences name of member method, 
@@ -109,8 +113,8 @@ sem ContextInteraction
                               ++ @get.proxyClass
                               ++ runnerInit True
   | WhenRequired lhs.classImplements = [ClassRefType (ClassType [(Ident "Context",[])])]
-                 loc.methName = "when" ++ @lhs.thisCtxNm ++ "Required"
-                 loc.myType  = jtype . fromJust $ lookup @lhs.thisCtxNm @lhs.tyEnv
+                 loc.methName = "when" ++ @lhs.thisCName ++ "Required"
+                 loc.myType  = jtype . fromJust $ lookup @lhs.thisCName @lhs.tyEnv
                  lhs.methods= [ methodDecl protectedAbstract
                                 (Just$ RefType @loc.myType) --return TODO simple inh instead of lookup?
                                 @loc.methName (funcparams @get.fparam) -- TODO proxy??
@@ -128,6 +132,40 @@ sem ContextInteraction
                                  [ BlockStmt (Return (Just (ExpName (Name [Ident "v"]))))
                                  ])
                               ] ++ @get.proxyClass ++ runnerInit True
+
+sem ControllerInteraction
+    | WhenContext     lhs.classImplements = [ClassRefType (ClassType [(Ident "Controller",[])]),
+                                             ClassRefType (ClassType [(Ident "Subscriber",
+                                                                       [ActualType @loc.inType])])]
+                      loc.inType = jtype (fromJust $ lookup @name @lhs.tyEnv) 
+                      loc.methName = "on" ++ @name ++ "Provided"
+                      loc.vName  = "proxy"
+                      loc.proxyName = @act ++ "Proxy"
+                      lhs.methods= [ methodDecl protectedAbstract Nothing --return
+                                     @loc.methName
+                                     (funcparams $ (@loc.inType, "newValue") :  @loc.proxyparam)
+                                     Nothing
+                                   , methodDecl publicFinal Nothing
+                                     "trigger"
+                                     (funcparams$ (@loc.inType, "value") : [])
+                                     (stmts $
+                                       @loc.initProxy ++
+                                       [BlockStmt (ExpStmt
+                                                   (MethodInv (MethodCall (Name [Ident @loc.methName])
+                                                               [ExpName (Name [Ident "value"])
+                                                               ,ExpName (Name [Ident @loc.vName])])))] -- call on..Provided
+                                       ++ @loc.destrProxy)
+                                   ]
+                                   ++ @loc.proxyClass
+                                   ++ runnerInit True
+                      loc.proxyparam = [(ClassRefType (ClassType [(Ident @loc.proxyName,[])]), @loc.vName)]
+                      loc.initProxy  = proxyOn  @loc.proxyName @loc.vName
+                      loc.destrProxy = proxyOff @loc.proxyName @loc.vName
+                      loc.proxyClass = []
+
+                        
+
+
 
 -- | determines the return type of a context.
 sem Publish
@@ -158,7 +196,7 @@ sem Get
               lhs.initProxy  = []
               lhs.proxyClass = []
               lhs.destrProxy = []
-  | Just      lhs.args       = [ExpName (Name [Ident "proxy"])] -- passed to dev's implementation
+  | Just      lhs.args       = [ExpName (Name [Ident "proxy"])] -- passed to dev's implementationy
               loc.proxyType  = jtype.fromJust $ lookup @just @lhs.tyEnv
               loc.vName      = "local" ++ @just ++ "Proxy"
               loc.proxyName  = @just ++ "Proxy"
@@ -166,10 +204,6 @@ sem Get
               lhs.destrProxy = proxyOff @loc.proxyName @loc.vName
               lhs.proxyClass = [proxyCl @just @loc.proxyName @loc.proxyType]
               lhs.fparam     = [(ClassRefType (ClassType [(Ident @loc.proxyName,[])]), "proxy")]
-
--- sem ControllerInteraction
---   | WhenContext     lhs.genJ = text "when_provided" >#< text @name
---                                 >-< text "do" >#< text @act
 
 {
 clsContext :: Maybe (PackageDecl)
@@ -179,21 +213,32 @@ clsContext :: Maybe (PackageDecl)
            -> [Decl] -- ^ the declarations (functions, variables) to be put in the body
            -> CompilationUnit -- ^ gives back full class.
 clsContext pkg clname i ty methods =
-  clsResource pkg clname (jtype ty)
+  clsResource pkg clname
     -- extends Publisher of Ty:
     (Just (ClassRefType (ClassType [(Ident "Publisher",[ActualType$ jtype ty])])))
     -- implements:
     i -- implements Context and perhaps subscriber
     methods -- these depend on the interaction contract etc
 
+clsController :: Maybe (PackageDecl)
+              -> String  -- ^ class name
+              -> [RefType] -- ^ implemented interfaces. depends on interaction contract
+              -> [Decl] -- ^ the functions, variables to be put in the body
+              -> CompilationUnit -- ^ gives back full class.
+clsController pkg clname i methods =
+  clsResource pkg clname
+    -- extends nothing
+    Nothing
+    i -- implements Controller and perhaps subscriber
+    methods -- these depend on the interaction contract etc
+
 clsResource :: Maybe (PackageDecl)
             -> String  -- ^ class name
-            -> RefType -- ^ type of the resource.
             -> Maybe RefType -- ^ does the class extend anything?
             -> [RefType] -- ^ what does it implement?
             -> [Decl] -- ^ body of the class
             -> CompilationUnit -- ^ give back a complete class
-clsResource pkg clname ty extends implements body =
+clsResource pkg clname extends implements body =
   CompilationUnit pkg [] -- no imports
   [ClassTypeDecl $ ClassDecl publicAbstract
    (Ident$ "Abstract"++clname)
@@ -206,7 +251,7 @@ clsAction :: Maybe (PackageDecl)
           -> RefType -- ^ input type of the action.
           -> CompilationUnit -- ^ gives back full class.
 clsAction pkg clname ty =
-  clsResource pkg clname ty 
+  clsResource pkg clname
     Nothing -- does not extend anything
     [ClassRefType (ClassType [(Ident "Action",[ActualType ty])])] -- implements Action
     (actionMethod clname ty)
@@ -216,7 +261,7 @@ clsSource :: Maybe (PackageDecl)  -- ^ package name
           -> RefType -- ^ output type of the source.
           -> CompilationUnit -- ^ gives back a full class.
 clsSource pkg clname ty =
-  clsResource pkg clname ty 
+  clsResource pkg clname
    (Just -- all sources extend publisher, with their type as Generics param.
     (ClassRefType (ClassType [(Ident "Publisher", [ActualType ty])])))
    [ClassRefType  (ClassType [(Ident "Source",    [ActualType ty])])] -- implements Source interface.
