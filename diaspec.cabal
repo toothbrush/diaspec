@@ -31,15 +31,24 @@ executable diaspec
                      , Diaspec.Frontend.Parser
                      , Diaspec.Backend.PrintDiaspec
                      , Diaspec.Backend.GenerateJava
-                     , Diaspec.Sort
                      , Diaspec.Backend.AG
+                     , Diaspec.Sort
+                     , Diaspec.JTypeUtils
   other-extensions:    CPP
-  build-depends:       base >=4.7 && <4.8, array >=0.5 && <0.6,
-                       language-java >= 0.2.7, uulib,
-                       cmdargs >= 0.10.12, Cabal >= 1.20.0.0,
-                       uuagc, uuagc-cabal, MissingH >= 1.0.0,
-                       filepath
+  build-depends:       base >=4.7 && <4.8
+                     , array >=0.5 && <0.6
+                     -- this is to prevent cmdargs pulling in an old version of transformers
+                     , mtl >= 2.2, transformers >= 0.4
+                     -- end cmdargs hack
+                     , language-java >= 0.2.7
+                     , cmdargs >= 0.10.12
+                     , MissingH >= 1.0.0
+                     , uulib >= 0.9
+                     , uuagc >= 0.9
+                     , filepath
   hs-source-dirs:      src
   build-tools:         alex, happy
   default-language:    Haskell2010
+  -- def-exts for the benefit of AGs, which
+  -- don't allow language extension specifications
   default-extensions:  StandaloneDeriving
