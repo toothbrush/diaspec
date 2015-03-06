@@ -160,9 +160,10 @@ sem Get
               lhs.destrProxy = []
   | Just      lhs.args       = [ExpName (Name [Ident "proxy"])] -- passed to dev's implementation
               loc.proxyType  = jtype.fromJust $ lookup @just @lhs.tyEnv
+              loc.vName      = "local" ++ @just ++ "Proxy"
               loc.proxyName  = @just ++ "Proxy"
-              lhs.initProxy  = proxyOn  @loc.proxyName "proxyVar"
-              lhs.destrProxy = proxyOff @loc.proxyName "proxyVar"
+              lhs.initProxy  = proxyOn  @loc.proxyName @loc.vName
+              lhs.destrProxy = proxyOff @loc.proxyName @loc.vName
               lhs.proxyClass = [proxyCl @just @loc.proxyName @loc.proxyType]
               lhs.fparam     = [(ClassRefType (ClassType [(Ident @loc.proxyName,[])]), "proxy")]
 
@@ -219,9 +220,8 @@ clsSource pkg clname ty =
   clsResource pkg clname ty 
    (Just -- all sources extend publisher, with their type as Generics param.
     (ClassRefType (ClassType [(Ident "Publisher", [ActualType ty])])))
-   [ClassRefType  (ClassType [(Ident "Source",    [])])] -- implements Source interface.
-   ([sourceMethod clname ty]
-     ++ runnerInit False)
+   [ClassRefType  (ClassType [(Ident "Source",    [ActualType ty])])] -- implements Source interface.
+   (sourceMethod clname ty)
 
 publicFinal       = [Public,    Final   ]
 publicAbstract    = [Public,    Abstract]
@@ -230,11 +230,13 @@ protectedAbstract = [Protected, Abstract]
   
 sourceMethod :: String -- ^ name of source
              -> RefType -- ^ expected return type.
-             -> Decl
-sourceMethod nm ty = methodDecl protectedAbstract
-                           (Just$ RefType ty)
-                           ("get"++nm++"Value") [] -- no parameters
-                           Nothing
+             -> [Decl]
+sourceMethod nm ty =
+  [methodDecl protectedAbstract (Just$ RefType ty)
+   ("get"++nm++"Value") [] Nothing
+  ,methodDecl [Public] (Just$RefType ty)
+   "requireValue" [] (Just (Block [BlockStmt (Return (Just (MethodInv (MethodCall (Name [Ident ("get"++nm++"Value")]) []))))]))
+  ]
   
 actionMethod :: String -- ^ name of source
              -> RefType -- ^ expected return type.

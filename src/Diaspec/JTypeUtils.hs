@@ -86,7 +86,7 @@ proxyCl srcName proxyName srcTy  =
                                                                                        (Name [Ident "runner",Ident$"get"++srcName])
                                                                                        []))
                                                          []
-                                                         (Ident$ "get"++srcName ++"Value") []))))])))
+                                                         (Ident$ "requireValue") []))))])))
                                ,BlockStmt (Throw
                                            (InstanceCreation [] (ClassType [(Ident "RuntimeException",[])])
                                             [Lit (String$"Access forbidden for "++ srcName++ " source")] Nothing))]))))])))
