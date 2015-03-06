@@ -7,7 +7,7 @@ all: src/Diaspec/Backend/AG.hs diaspec
 	cabal build
 
 diaspec:
-	ln -sv dist/build/diaspec/diaspec
+	-ln -sv dist/build/diaspec/diaspec
 
 # This AG file includes all the others.
 src/Diaspec/Backend/AG.hs: $(AGs)

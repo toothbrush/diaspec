@@ -88,7 +88,6 @@ optionHandler (Racket infile out) = do
 optionHandler (Java infile outdir)= do
        putStrLn "[JAVA] Generate framework."
        when (null outdir) $ putStrLn "--outdir blank!" >> exitWith (ExitFailure 1)
-    
        handleJava infile outdir
 
 readSomething :: FilePath -> IO (String, String)
@@ -112,6 +111,9 @@ handleJava :: FilePath -> FilePath -> IO ()
 handleJava i   o = do (pn, spec) <- readSomething i
                       let res = ((genJava . S pn) . parseGrammar . alexScanTokens) spec
                           txt = map prettyPrint res
+                      putStrLn "Debug output: spec was"
+                      putStrLn spec
+                      putStrLn "---------\n"
                       --TODO write files into DIR
                       mapM_ putStrLn txt
                       

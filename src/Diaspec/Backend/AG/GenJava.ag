@@ -1,10 +1,9 @@
 imports
 {
 import Language.Java.Syntax
-import Data.String.Utils (split)
 import Data.Maybe (fromJust)
 
-import Debug.Trace
+import Diaspec.JTypeUtils
 }
 
 {
@@ -48,7 +47,12 @@ attr Publish
   syn notify  :: {BlockStmt}
 
 attr Get
+  inh tyEnv   :: {TyEnv}
   syn args    :: {[Exp]}
+  syn fparam  :: {[(RefType, String)]}
+  syn initProxy :: {[BlockStmt]}
+  syn destrProxy :: {[BlockStmt]}
+  syn proxyClass :: {[Decl]}
                  
 sem Specification
   | S        lhs.genJ  = @ds.genJ 
@@ -89,38 +93,41 @@ sem ContextInteraction
                  loc.methName = "on" ++ @name ++ "Provided"
                  lhs.methods= [ methodDecl protectedAbstract (Just @pub.ret) --return
                                 @loc.methName
-                                [FormalParam [] (RefType @loc.inType) False
-                                 (VarId (Ident "newValue"))] -- TODO proxy??
+                                (funcparams $ (@loc.inType, "newValue") :  @get.fparam)
                                 Nothing
                               , methodDecl publicFinal Nothing
                                 "trigger"
-                                [FormalParam [] (RefType @loc.inType) False
-                                 (VarId (Ident "value"))]
-                                (Just
-                                 (Block
-                                  [ LocalVars [] @pub.ret
-                                    [VarDecl (VarId (Ident "v"))
+                                (funcparams$ (@loc.inType, "value") : [])
+                                (stmts $
+                                  @get.initProxy ++
+                                  [ lVar @pub.ret "v"
                                      (Just (InitExp (MethodInv (MethodCall
-                                        (Name [Ident @loc.methName]) @get.args))))]
-                                  , @pub.notify]))
-                              ] ++ runnerInit True
+                                        (Name [Ident @loc.methName]) (ExpName (Name [Ident "value"]) : @get.args)))))]
+                                  ++ @get.destrProxy ++
+                                  [@pub.notify])
+                              ]
+                              ++ @get.proxyClass
+                              ++ runnerInit True
   | WhenRequired lhs.classImplements = [ClassRefType (ClassType [(Ident "Context",[])])]
                  loc.methName = "when" ++ @lhs.thisCtxNm ++ "Required"
                  loc.myType  = jtype . fromJust $ lookup @lhs.thisCtxNm @lhs.tyEnv
                  lhs.methods= [ methodDecl protectedAbstract
                                 (Just$ RefType @loc.myType) --return TODO simple inh instead of lookup?
-                                @loc.methName [] -- TODO proxy??
+                                @loc.methName (funcparams @get.fparam) -- TODO proxy??
                                 Nothing
                               , methodDecl [Protected, Final] Nothing "requireValue"
                                 [] -- no args
-                                (Just
-                                 (Block
-                                  [LocalVars [] (RefType @loc.myType) [VarDecl (VarId (Ident "v"))
-                                      (Just (InitExp (MethodInv (MethodCall
-                                               (Name [Ident @loc.methName]) [] -- TODO proxy args
-                                                                ))))],
-                                   BlockStmt (Return (Just (ExpName (Name [Ident "v"]))))]))
-                              ] ++ runnerInit True
+                                (stmts$
+                                 @get.initProxy ++
+                                 [lVar (RefType @loc.myType) "v"
+                                  (Just (InitExp (MethodInv (MethodCall
+                                                             (Name [Ident @loc.methName])
+                                                             @get.args))))
+                                 ] ++
+                                 @get.destrProxy ++
+                                 [ BlockStmt (Return (Just (ExpName (Name [Ident "v"]))))
+                                 ])
+                              ] ++ @get.proxyClass ++ runnerInit True
 
 -- | determines the return type of a context.
 sem Publish
@@ -146,8 +153,18 @@ sem Publish
 
 -- | add proxy or not
 sem Get
-  | Nothing   lhs.args = [ExpName (Name [Ident "value"])] -- no proxy needed.
-  | Just      lhs.args = undefined -- TODO all the proxy stuff...
+  | Nothing   lhs.args       = [] -- no proxy to method invocation.
+              lhs.fparam     = [] -- no extra argument to abstract method
+              lhs.initProxy  = []
+              lhs.proxyClass = []
+              lhs.destrProxy = []
+  | Just      lhs.args       = [ExpName (Name [Ident "proxy"])] -- passed to dev's implementation
+              loc.proxyType  = jtype.fromJust $ lookup @just @lhs.tyEnv
+              loc.proxyName  = @just ++ "Proxy"
+              lhs.initProxy  = []
+              lhs.destrProxy = []
+              lhs.proxyClass = [proxyCl @just @loc.proxyName @loc.proxyType]
+              lhs.fparam     = [(ClassRefType (ClassType [(Ident @loc.proxyName,[])]), "proxy")]
 
 -- sem ControllerInteraction
 --   | WhenContext     lhs.genJ = text "when_provided" >#< text @name
@@ -210,29 +227,6 @@ publicFinal       = [Public,    Final   ]
 publicAbstract    = [Public,    Abstract]
 protectedAbstract = [Protected, Abstract]
 
-pack n = packagify $ concat ["fr.diaspec.", n, ".generated"]
-  where packagify s = Just (PackageDecl (Name (map Ident (split "." s))))
-
-jtype :: DType -> RefType
-jtype t = case t of
-     DBool    -> wrap "Boolean"
-     DInt     -> wrap "Integer"
-     DString  -> wrap "String"
-     DPicture -> wrap "Bitmap" 
-  where
-    wrap :: String -> RefType
-    wrap s = ClassRefType (ClassType
-                             [(Ident s,[])])
-
-methodDecl :: [Modifier] -- ^ scope modifiers, abstract, final
-           -> Maybe Type -- ^ expected return type.
-           -> String       -- ^ desired method name
-           -> [FormalParam] -- ^ method arguments
-           -> Maybe Block
-           -> Decl -- ^ a method declaration.
-methodDecl scope ret nm args bod = MemberDecl$ MethodDecl scope [] ret (Ident nm) args
-                           [] -- no exceptions
-                           (MethodBody bod)
   
 sourceMethod :: String -- ^ name of source
              -> RefType -- ^ expected return type.
@@ -248,25 +242,19 @@ actionMethod :: String -- ^ name of source
 actionMethod nm ty = methodDecl protectedAbstract
                            Nothing 
                            ("do"++nm++"Action")
-                           [FormalParam [] (RefType ty) False (VarId$ Ident "param")] -- formal parameters.
+                           (funcparams$[(ty, "param")]) -- formal parameters.
                            Nothing
-
-runnerInit :: Bool -- ^ should it be Final?
-           -> [Decl]
-runnerInit b    = [ MemberDecl (FieldDecl (runnerVarModifs b) (RefType (ClassRefType (ClassType [(Ident "AbstractRunner",[])])))
-                                [VarDecl (VarId (Ident "runner")) Nothing])
-                  , methodDecl (runnerMethModifs b) Nothing
-                    "init"
-                    [FormalParam [] (RefType (ClassRefType (ClassType [(Ident "AbstractRunner",[])]))) False (VarId (Ident "runner"))]
-                    (Just (Block [BlockStmt (ExpStmt (Assign (FieldLhs (PrimaryFieldAccess This (Ident "runner"))) EqualA (ExpName (Name [Ident "runner"]))))]))
-                  ]
-  where runnerMethModifs True = [Final, Protected]
-        runnerMethModifs False = [Protected]
-        runnerVarModifs  True = [Private]
-        runnerVarModifs  False = [Protected]
                                 
-
-
+jtype :: DType -> RefType
+jtype t = case t of
+     DBool    -> wrap "Boolean"
+     DInt     -> wrap "Integer"
+     DString  -> wrap "String"
+     DPicture -> wrap "Bitmap" 
+  where
+    wrap :: String -> RefType
+    wrap s = ClassRefType (ClassType
+                             [(Ident s,[])])
 
                            
 }
