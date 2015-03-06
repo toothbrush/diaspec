@@ -28,16 +28,6 @@ runnerInit b    = [ MemberDecl (FieldDecl (runnerVarModifs b) (RefType absRunCls
         runnerVarModifs  False = [Protected]
 
 
-methodDecl :: [Modifier] -- ^ scope modifiers, abstract, final
-           -> Maybe Type -- ^ expected return type.
-           -> String       -- ^ desired method name
-           -> [FormalParam] -- ^ method arguments
-           -> Maybe Block
-           -> Decl -- ^ a method declaration.
-methodDecl scope ret nm args bod = MemberDecl$ MethodDecl scope [] ret (Ident nm) args
-                                   [] -- no exceptions
-                                   (MethodBody bod)
-
 pack :: [Char] -> Maybe PackageDecl
 pack n = packagify $ concat ["fr.diaspec.", n, ".generated"]
   where packagify s = Just (PackageDecl (Name (map Ident (split "." s))))
@@ -68,6 +58,18 @@ proxyClGet srcName proxyName srcTy =
                                    (ClassType [(Ident "RuntimeException",[])])
                                    [Lit (String$"Access forbidden for "++srcName++" source")] Nothing))])))]
 
+methodDecl :: [Modifier] -- ^ scope modifiers, abstract, final
+           -> Maybe Type -- ^ expected return type.
+           -> String       -- ^ desired method name
+           -> [FormalParam] -- ^ method arguments
+           -> Maybe Block
+           -> Decl -- ^ a method declaration.
+methodDecl scope ret nm args bod =
+  MemberDecl$ MethodDecl
+  scope [] ret (Ident nm) args
+  [] -- no exceptions
+  (MethodBody bod)
+
 proxyClDo :: String -> String -> [FormalParam] -> Decl
 proxyClDo actName proxyName methArgs =
   proxyCl proxyName Nothing ("do" ++ actName ++ "Action")
@@ -97,30 +99,27 @@ proxyCl proxyName srcTy pMethName methArgs proxyBody =
   (MemberClassDecl
    (ClassDecl [Protected,Final]
     (Ident proxyName) [] Nothing []
-    (ClassBody [MemberDecl
-                (ConstructorDecl [Private] [] (Ident proxyName) [] []
-                 (ConstructorBody Nothing []))
-               ,MemberDecl
-                (MethodDecl [Final,Private] [] Nothing
-                 (Ident "setAccessible")
-                 [FormalParam [] (PrimType BooleanT) False (VarId (Ident "isAccessible"))] []
-                 (MethodBody
-                  (Just (Block
+    (ClassBody [ MemberDecl
+                 (ConstructorDecl [Private] [] (Ident proxyName) [] []
+                  (ConstructorBody Nothing []))
+               , methodDecl [Final,Private] Nothing
+                 "setAccessible"
+                 [FormalParam [] (PrimType BooleanT) False (VarId (Ident "isAccessible"))]
+                 (Just (Block
                          [BlockStmt
                           (ExpStmt (Assign (FieldLhs (PrimaryFieldAccess This (Ident "isAccessible")))
-                                    EqualA (ExpName (Name [Ident "isAccessible"]))))]))))
-               ,MemberDecl (FieldDecl [Private]
-                            (PrimType BooleanT)
-                            [VarDecl (VarId (Ident "isAccessible"))
-                             (Just (InitExp (Lit (Boolean False))))])
-               ,MemberDecl (MethodDecl [Final,Public] []
-                            srcTy
-                            (Ident$ pMethName) methArgs []
-                            (MethodBody
-                             (Just
-                              (Block
-                               proxyBody
-                               ))))])))
+                                    EqualA (ExpName (Name [Ident "isAccessible"]))))]))
+               , MemberDecl (FieldDecl [Private]
+                             (PrimType BooleanT)
+                             [VarDecl (VarId (Ident "isAccessible"))
+                              (Just (InitExp (Lit (Boolean False))))])
+               , methodDecl [Final,Public]
+                 srcTy
+                 pMethName methArgs
+                 (Just
+                  (Block
+                   proxyBody
+                  ))])))
 
 proxyOn proxyName vName =
    [LocalVars []
@@ -208,7 +207,8 @@ sourceMethod nm ty =
   [ methodDecl protectedAbstract (Just$ RefType ty)
     ("get"++nm++"Value") [] Nothing
   , methodDecl [Public] (Just$RefType ty)
-    "requireValue" [] (Just (Block [BlockStmt (Return (Just (MethodInv (MethodCall (Name [Ident ("get"++nm++"Value")]) []))))]))
+    "requireValue" []
+    (Just (Block [BlockStmt (Return (Just (MethodInv (MethodCall (Name [Ident ("get"++nm++"Value")]) []))))]))
   ]
   
 actionMethod :: String -- ^ name of source
