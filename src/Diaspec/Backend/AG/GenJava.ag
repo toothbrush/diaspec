@@ -17,6 +17,7 @@ type TyEnv = [(String, DType)]
 -- TODO split the two AGs: for pprinting and for compilation.
 attr Specification Declarations
   syn genJ   :: {[CompilationUnit]}
+  syn runner   :: {CompilationUnit}
 
 attr Declaration
   syn genJ   :: {CompilationUnit}
@@ -60,7 +61,9 @@ attr Get
 sem Specification
   | S        lhs.genJ  = @ds.genJ 
              ds.tyEnv  = @ds.allTypes
-             ds.pkg    = pack @name
+             loc.pkg   = pack @name
+             ds.pkg    = @loc.pkg
+             lhs.runner = clsRunner @loc.pkg 
 
 sem Declarations
   | Cons     lhs.genJ = @hd.genJ : @tl.genJ -- TODO figure out why list is reversing

@@ -219,3 +219,8 @@ actionMethod nm ty =
                                                 [ExpName (Name [Ident "value"])])))]))
   ]
                                 
+
+clsRunner pkg = clsResource pkg "Runner"
+                (Just -- extends CommonRuncode
+                 (ClassRefType (ClassType [(Ident "CommonRuncode", [])]))) []
+                []
