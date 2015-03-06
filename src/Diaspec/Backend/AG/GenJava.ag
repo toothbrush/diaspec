@@ -161,8 +161,8 @@ sem Get
   | Just      lhs.args       = [ExpName (Name [Ident "proxy"])] -- passed to dev's implementation
               loc.proxyType  = jtype.fromJust $ lookup @just @lhs.tyEnv
               loc.proxyName  = @just ++ "Proxy"
-              lhs.initProxy  = []
-              lhs.destrProxy = []
+              lhs.initProxy  = proxyOn  @loc.proxyName "proxyVar"
+              lhs.destrProxy = proxyOff @loc.proxyName "proxyVar"
               lhs.proxyClass = [proxyCl @just @loc.proxyName @loc.proxyType]
               lhs.fparam     = [(ClassRefType (ClassType [(Ident @loc.proxyName,[])]), "proxy")]
 

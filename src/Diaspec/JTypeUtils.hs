@@ -38,15 +38,17 @@ methodDecl scope ret nm args bod = MemberDecl$ MethodDecl scope [] ret (Ident nm
                                    [] -- no exceptions
                                    (MethodBody bod)
 
-
+pack :: [Char] -> Maybe PackageDecl
 pack n = packagify $ concat ["fr.diaspec.", n, ".generated"]
   where packagify s = Just (PackageDecl (Name (map Ident (split "." s))))
 
+stmts :: [BlockStmt] -> Maybe Block
 stmts = Just . Block
 
-
+lVar :: Type -> String -> Maybe VarInit -> BlockStmt
 lVar ty nm value = LocalVars [] ty [VarDecl (VarId (Ident nm)) value]
 
+proxyCl :: [Char] -> String -> RefType -> Decl
 proxyCl srcName proxyName srcTy  =
   MemberDecl
   (MemberClassDecl
@@ -89,8 +91,12 @@ proxyCl srcName proxyName srcTy  =
                                            (InstanceCreation [] (ClassType [(Ident "RuntimeException",[])])
                                             [Lit (String$"Access forbidden for "++ srcName++ " source")] Nothing))]))))])))
 
+proxyOn proxyName vName =
+   [LocalVars []
+    (RefType (ClassRefType (ClassType [(Ident proxyName,[])])))
+    [VarDecl (VarId (Ident vName)) (Just (InitExp (InstanceCreation [] (ClassType [(Ident proxyName,[])]) [] Nothing)))]
+   ,BlockStmt
+    (ExpStmt (MethodInv (MethodCall (Name [Ident vName,Ident "setAccessible"]) [Lit (Boolean True)])))]
 
-
-
-
-
+proxyOff proxyName vName =
+  [BlockStmt (ExpStmt (MethodInv (MethodCall (Name [Ident vName,Ident "setAccessible"]) [Lit (Boolean False)])))]
