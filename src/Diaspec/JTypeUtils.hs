@@ -133,3 +133,93 @@ proxyOff proxyName vName =
   [BlockStmt (ExpStmt (MethodInv (MethodCall (Name [Ident vName,Ident "setAccessible"]) [Lit (Boolean False)])))]
 
 
+clsContext :: Maybe (PackageDecl)
+           -> String  -- ^ class name
+           -> [RefType] -- ^ implemented interfaces. depends on interaction contract
+           -> RefType -- ^ output type of the context.
+           -> [Decl] -- ^ the declarations (functions, variables) to be put in the body
+           -> CompilationUnit -- ^ gives back full class.
+clsContext pkg clname i ty methods =
+  clsResource pkg clname
+    -- extends Publisher of Ty:
+    (Just (ClassRefType (ClassType [(Ident "Publisher",[ActualType ty])])))
+    -- implements:
+    i -- implements Context and perhaps subscriber
+    methods -- these depend on the interaction contract etc
+
+
+
+clsController :: Maybe (PackageDecl)
+              -> String  -- ^ class name
+              -> [RefType] -- ^ implemented interfaces. depends on interaction contract
+              -> [Decl] -- ^ the functions, variables to be put in the body
+              -> CompilationUnit -- ^ gives back full class.
+clsController pkg clname i methods =
+  clsResource pkg clname
+    -- extends nothing
+    Nothing
+    i -- implements Controller and perhaps subscriber
+    methods -- these depend on the interaction contract etc
+
+clsResource :: Maybe (PackageDecl)
+            -> String  -- ^ class name
+            -> Maybe RefType -- ^ does the class extend anything?
+            -> [RefType] -- ^ what does it implement?
+            -> [Decl] -- ^ body of the class
+            -> CompilationUnit -- ^ give back a complete class
+clsResource pkg clname extends implements body =
+  CompilationUnit pkg [] -- no imports
+  [ClassTypeDecl $ ClassDecl publicAbstract
+   (Ident$ "Abstract"++clname)
+   [] -- not a generic class, hence no type parameters
+   extends implements
+   (ClassBody body)]
+
+clsAction :: Maybe (PackageDecl)
+          -> String  -- ^ class name
+          -> RefType -- ^ input type of the action.
+          -> CompilationUnit -- ^ gives back full class.
+clsAction pkg clname ty =
+  clsResource pkg clname
+    Nothing -- does not extend anything
+    [ClassRefType (ClassType [(Ident "Action",[ActualType ty])])] -- implements Action
+    (actionMethod clname ty)
+
+clsSource :: Maybe (PackageDecl)  -- ^ package name
+          -> String  -- ^ class name
+          -> RefType -- ^ output type of the source.
+          -> CompilationUnit -- ^ gives back a full class.
+clsSource pkg clname ty =
+  clsResource pkg clname
+   (Just -- all sources extend publisher, with their type as Generics param.
+    (ClassRefType (ClassType [(Ident "Publisher", [ActualType ty])])))
+   [ClassRefType  (ClassType [(Ident "Source",    [ActualType ty])])] -- implements Source interface.
+   (sourceMethod clname ty)
+
+publicFinal       = [Public,    Final   ]
+publicAbstract    = [Public,    Abstract]
+protectedAbstract = [Protected, Abstract]
+
+  
+sourceMethod :: String -- ^ name of source
+             -> RefType -- ^ expected return type.
+             -> [Decl]
+sourceMethod nm ty =
+  [ methodDecl protectedAbstract (Just$ RefType ty)
+    ("get"++nm++"Value") [] Nothing
+  , methodDecl [Public] (Just$RefType ty)
+    "requireValue" [] (Just (Block [BlockStmt (Return (Just (MethodInv (MethodCall (Name [Ident ("get"++nm++"Value")]) []))))]))
+  ]
+  
+actionMethod :: String -- ^ name of source
+             -> RefType -- ^ expected return type.
+             -> [Decl]
+actionMethod nm ty =
+  [methodDecl protectedAbstract Nothing 
+   ("do"++nm++"Action") (funcparams$[(ty, "value")]) Nothing
+  ,methodDecl [Public] Nothing
+   "trigger" (funcparams$[(ty, "value")])
+   (Just (Block [BlockStmt (ExpStmt (MethodInv (MethodCall (Name [Ident ("do"++nm++"Action")])
+                                                [ExpName (Name [Ident "value"])])))]))
+  ]
+                                

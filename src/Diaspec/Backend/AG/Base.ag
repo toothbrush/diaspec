@@ -1,6 +1,7 @@
 imports
 {
 import UU.Pretty
+import Language.Java.Syntax
 }
 
 -- possible types for our components
@@ -44,6 +45,16 @@ data Publish
      | MaybePublish
 
 {
+jtype :: DType -> RefType
+jtype t = case t of
+     DBool    -> wrap "Boolean"
+     DInt     -> wrap "Integer"
+     DString  -> wrap "String"
+     DPicture -> wrap "Bitmap" 
+  where
+    wrap :: String -> RefType
+    wrap s = ClassRefType (ClassType [(Ident s,[])])
+
 deriving instance Eq DType
 deriving instance Show DType
 
