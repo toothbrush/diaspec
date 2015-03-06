@@ -72,7 +72,7 @@ proxyCl srcName proxyName srcTy  =
                              (Just (InitExp (Lit (Boolean False))))])
                ,MemberDecl (MethodDecl [Final,Public] []
                             (Just (RefType srcTy))
-                            (Ident "queryProxy") [] []
+                            (Ident$ "query"++srcName) [] []
                             (MethodBody
                              (Just
                               (Block
