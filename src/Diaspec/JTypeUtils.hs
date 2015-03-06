@@ -8,7 +8,7 @@ funcparams = map (\(t,n) -> FormalParam [] (RefType t) False (VarId (Ident n)))
 
 
 absRunCls :: RefType
-absRunCls = (ClassRefType (ClassType [(Ident "AbstractRunner",[])]))
+absRunCls = ClassRefType (ClassType [(Ident "AbstractRunner",[])])
 
 
 runnerInit :: Bool -- ^ should it be Final?
@@ -17,7 +17,7 @@ runnerInit b    = [ MemberDecl (FieldDecl (runnerVarModifs b) (RefType absRunCls
                                 [VarDecl (VarId (Ident "runner")) Nothing])
                   , methodDecl (runnerMethModifs b) Nothing
                     "init"
-                    (funcparams$[(absRunCls, "runner")])
+                    (funcparams [(absRunCls, "runner")])
                     (Just (Block [BlockStmt
                                   (ExpStmt (Assign (FieldLhs (PrimaryFieldAccess This (Ident "runner")))
                                             EqualA (ExpName (Name [Ident "runner"]))))]))
@@ -28,7 +28,7 @@ runnerInit b    = [ MemberDecl (FieldDecl (runnerVarModifs b) (RefType absRunCls
         runnerVarModifs  False = [Protected]
 
 
-pack :: [Char] -> Maybe PackageDecl
+pack :: String -> Maybe PackageDecl
 pack n = packagify $ concat ["fr.diaspec.", n, ".generated"]
   where packagify s = Just (PackageDecl (Name (map Ident (split "." s))))
 
@@ -38,7 +38,7 @@ stmts = Just . Block
 lVar :: Type -> String -> Maybe VarInit -> BlockStmt
 lVar ty nm value = LocalVars [] ty [VarDecl (VarId (Ident nm)) value]
 
-proxyClGet :: [Char] -> String -> Maybe Type -> Decl
+proxyClGet :: String -> String -> Maybe Type -> Decl
 proxyClGet srcName proxyName srcTy =
   proxyCl proxyName srcTy ("query" ++ srcName ++ "Value")
   []
@@ -132,35 +132,31 @@ proxyOff proxyName vName =
   [BlockStmt (ExpStmt (MethodInv (MethodCall (Name [Ident vName,Ident "setAccessible"]) [Lit (Boolean False)])))]
 
 
-clsContext :: Maybe (PackageDecl)
+clsContext :: Maybe PackageDecl
            -> String  -- ^ class name
            -> [RefType] -- ^ implemented interfaces. depends on interaction contract
            -> RefType -- ^ output type of the context.
            -> [Decl] -- ^ the declarations (functions, variables) to be put in the body
            -> CompilationUnit -- ^ gives back full class.
-clsContext pkg clname i ty methods =
+clsContext pkg clname i ty =
   clsResource pkg clname
     -- extends Publisher of Ty:
     (Just (ClassRefType (ClassType [(Ident "Publisher",[ActualType ty])])))
-    -- implements:
     i -- implements Context and perhaps subscriber
-    methods -- these depend on the interaction contract etc
 
 
 
-clsController :: Maybe (PackageDecl)
+clsController :: Maybe PackageDecl
               -> String  -- ^ class name
               -> [RefType] -- ^ implemented interfaces. depends on interaction contract
               -> [Decl] -- ^ the functions, variables to be put in the body
               -> CompilationUnit -- ^ gives back full class.
-clsController pkg clname i methods =
+clsController pkg clname = 
   clsResource pkg clname
     -- extends nothing
     Nothing
-    i -- implements Controller and perhaps subscriber
-    methods -- these depend on the interaction contract etc
 
-clsResource :: Maybe (PackageDecl)
+clsResource :: Maybe PackageDecl
             -> String  -- ^ class name
             -> Maybe RefType -- ^ does the class extend anything?
             -> [RefType] -- ^ what does it implement?
@@ -174,7 +170,7 @@ clsResource pkg clname extends implements body =
    extends implements
    (ClassBody body)]
 
-clsAction :: Maybe (PackageDecl)
+clsAction :: Maybe PackageDecl
           -> String  -- ^ class name
           -> RefType -- ^ input type of the action.
           -> CompilationUnit -- ^ gives back full class.
@@ -184,7 +180,7 @@ clsAction pkg clname ty =
     [ClassRefType (ClassType [(Ident "Action",[ActualType ty])])] -- implements Action
     (actionMethod clname ty)
 
-clsSource :: Maybe (PackageDecl)  -- ^ package name
+clsSource :: Maybe PackageDecl  -- ^ package name
           -> String  -- ^ class name
           -> RefType -- ^ output type of the source.
           -> CompilationUnit -- ^ gives back a full class.
@@ -216,9 +212,9 @@ actionMethod :: String -- ^ name of source
              -> [Decl]
 actionMethod nm ty =
   [methodDecl protectedAbstract Nothing 
-   ("do"++nm++"Action") (funcparams$[(ty, "value")]) Nothing
+   ("do"++nm++"Action") (funcparams [(ty, "value")]) Nothing
   ,methodDecl [Public] Nothing
-   "trigger" (funcparams$[(ty, "value")])
+   "trigger" (funcparams [(ty, "value")])
    (Just (Block [BlockStmt (ExpStmt (MethodInv (MethodCall (Name [Ident ("do"++nm++"Action")])
                                                 [ExpName (Name [Ident "value"])])))]))
   ]

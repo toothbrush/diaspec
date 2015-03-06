@@ -15,7 +15,7 @@ import Language.Java.Syntax
 -- give this a name for exporting.
 genJava :: Specification -> [CompilationUnit] -- CompilationUnit roughly corresponds to a Java file.
 genJava (S pn s) = genJ_Syn_Specification (wrap_Specification
-                                           (sem_Specification(S pn$ s))
-                   (Inh_Specification{}))
+                                           (sem_Specification (S pn s))
+                                           Inh_Specification{})
 
 
