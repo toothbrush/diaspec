@@ -161,7 +161,7 @@ sem ControllerInteraction
                       loc.proxyparam = [(ClassRefType (ClassType [(Ident @loc.proxyName,[])]), @loc.vName)]
                       loc.initProxy  = proxyOn  @loc.proxyName @loc.vName
                       loc.destrProxy = proxyOff @loc.proxyName @loc.vName
-                      loc.proxyClass = []
+                      loc.proxyClass = [proxyClDo @act @loc.proxyName (funcparams$(@loc.inType, "value"):[])]
 
                         
 
@@ -197,12 +197,12 @@ sem Get
               lhs.proxyClass = []
               lhs.destrProxy = []
   | Just      lhs.args       = [ExpName (Name [Ident "proxy"])] -- passed to dev's implementationy
-              loc.proxyType  = jtype.fromJust $ lookup @just @lhs.tyEnv
+              loc.proxyType  = Just (RefType (jtype.fromJust $ lookup @just @lhs.tyEnv))
               loc.vName      = "local" ++ @just ++ "Proxy"
               loc.proxyName  = @just ++ "Proxy"
               lhs.initProxy  = proxyOn  @loc.proxyName @loc.vName
               lhs.destrProxy = proxyOff @loc.proxyName @loc.vName
-              lhs.proxyClass = [proxyCl @just @loc.proxyName @loc.proxyType]
+              lhs.proxyClass = [proxyClGet @just @loc.proxyName @loc.proxyType]
               lhs.fparam     = [(ClassRefType (ClassType [(Ident @loc.proxyName,[])]), "proxy")]
 
 {

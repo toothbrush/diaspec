@@ -48,8 +48,47 @@ stmts = Just . Block
 lVar :: Type -> String -> Maybe VarInit -> BlockStmt
 lVar ty nm value = LocalVars [] ty [VarDecl (VarId (Ident nm)) value]
 
-proxyCl :: [Char] -> String -> RefType -> Decl
-proxyCl srcName proxyName srcTy  =
+proxyClGet :: [Char] -> String -> Maybe Type -> Decl
+proxyClGet srcName proxyName srcTy =
+  proxyCl srcName proxyName srcTy ("query" ++ srcName ++ "Value")
+  []
+  [BlockStmt (IfThenElse
+              (ExpName (Name [Ident "isAccessible"]))
+              (StmtBlock (Block
+                          [BlockStmt
+                           (Return (Just
+                                    (MethodInv
+                                     (PrimaryMethodCall
+                                      (MethodInv (MethodCall
+                                                  (Name [Ident "runner",Ident$"get"++srcName]) [])) []
+                                      (Ident "requireValue") []))))]))
+              (StmtBlock (Block
+                          [BlockStmt
+                           (Throw (InstanceCreation []
+                                   (ClassType [(Ident "RuntimeException",[])])
+                                   [Lit (String$"Access forbidden for "++srcName++" source")] Nothing))])))]
+
+proxyClDo actName proxyName methArgs =
+  proxyCl actName proxyName Nothing ("do" ++ actName ++ "Action")
+  methArgs
+  [BlockStmt (IfThenElse
+              (ExpName (Name [Ident "isAccessible"]))
+              (StmtBlock (Block
+                          [BlockStmt
+                           (ExpStmt
+                            (MethodInv
+                             (PrimaryMethodCall
+                              (MethodInv
+                               (MethodCall (Name [Ident "runner",Ident$ "get"++actName]) [])) []
+                              (Ident "trigger") [ExpName (Name [Ident "newVisual"])])))]))
+              (StmtBlock (Block
+                          [BlockStmt
+                           (Throw (InstanceCreation []
+                                   (ClassType [(Ident "RuntimeException",[])])
+                                   [Lit (String$"Access forbidden for "++actName++" action")] Nothing))])))]
+
+-- proxyCl :: [Char] -> String -> RefType -> String -> Decl
+proxyCl srcName proxyName srcTy pMethName methArgs proxyBody =
   MemberDecl
   (MemberClassDecl
    (ClassDecl [Protected,Final]
@@ -71,25 +110,13 @@ proxyCl srcName proxyName srcTy  =
                             [VarDecl (VarId (Ident "isAccessible"))
                              (Just (InitExp (Lit (Boolean False))))])
                ,MemberDecl (MethodDecl [Final,Public] []
-                            (Just (RefType srcTy))
-                            (Ident$ "query"++srcName) [] []
+                            srcTy
+                            (Ident$ pMethName) methArgs []
                             (MethodBody
                              (Just
                               (Block
-                               [BlockStmt
-                                (IfThen (ExpName (Name [Ident "isAccessible"]))
-                                 (StmtBlock
-                                  (Block
-                                   [BlockStmt
-                                    (Return (Just
-                                             (MethodInv (PrimaryMethodCall (MethodInv (MethodCall
-                                                                                       (Name [Ident "runner",Ident$"get"++srcName])
-                                                                                       []))
-                                                         []
-                                                         (Ident$ "requireValue") []))))])))
-                               ,BlockStmt (Throw
-                                           (InstanceCreation [] (ClassType [(Ident "RuntimeException",[])])
-                                            [Lit (String$"Access forbidden for "++ srcName++ " source")] Nothing))]))))])))
+                               proxyBody
+                               ))))])))
 
 proxyOn proxyName vName =
    [LocalVars []
