@@ -30,9 +30,9 @@ public abstract class AbstractDisplay implements Controller, Subscriber<Bitmap> 
 			this.isAccessible = isAccessible;
 		}
 
-		final public void doScreenAction(Bitmap newVisual) {
+		final public void screenAction(Bitmap newVisual) {
 			if (isAccessible) {
-				runner.getScreen().doScreenAction(newVisual);
+				runner.getScreen().trigger(newVisual);
 			} else {
 				throw new RuntimeException("Access forbidden for Screen action");
 			}}}}

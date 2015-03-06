@@ -1,5 +1,6 @@
 package fr.diaspec.webcam.generated;
 
+
 public abstract class AbstractRunner extends CommonRuncode {
 
     // Taxonomy components (actions, sources)
@@ -13,6 +14,12 @@ public abstract class AbstractRunner extends CommonRuncode {
     public abstract AbstractComposeDisplay  getComposeDisplay();
     public abstract AbstractDisplay         getDisplay();
 
+    // these need to be class fields so that the instances are long-lived.
+    private AbstractMakeAd ad;
+    private AbstractProcessPicture mp;
+    private AbstractComposeDisplay as;
+    private AbstractDisplay sc;
+    
     @Override
     protected void init() {
     	Log.i("gc","starting init()");
@@ -27,10 +34,10 @@ public abstract class AbstractRunner extends CommonRuncode {
     	// if they take a picture and internet wasn't ready yet.
     	//ip.init(this);
     	
-        AbstractMakeAd ad = getMakeAd();
-        AbstractProcessPicture mp = getProcessPicture();
-        AbstractComposeDisplay as = getComposeDisplay();
-        AbstractDisplay sc = getDisplay();
+        ad = getMakeAd();
+        mp = getProcessPicture();
+        as = getComposeDisplay();
+        sc = getDisplay();
         
         sc.init(this); // give them a pointer to this instance of Runner (for querying resources)
         mp.init(this);

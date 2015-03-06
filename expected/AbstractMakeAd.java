@@ -5,6 +5,7 @@ abstract public class AbstractMakeAd extends Publisher<String> implements Contex
 	private AbstractRunner runner;
 
 	final public void init(AbstractRunner runner) {
+		Log.i("makead", "init has been called.");
 		this.runner = runner;
 	}
 
@@ -31,7 +32,7 @@ abstract public class AbstractMakeAd extends Publisher<String> implements Contex
 		private boolean isAccessible = false;
 		final public String getMakeAd() {
 			if (isAccessible)
-			{ return runner.getIP().getIPValue(); }
+			{ return runner.getIP().requireValue(); }
 
 			throw new RuntimeException("Access forbidden for IP source");
 		}}

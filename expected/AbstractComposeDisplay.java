@@ -31,11 +31,9 @@ abstract public class AbstractComposeDisplay extends Publisher<Bitmap> implement
             this.isAccessible = isAccessible;
         }
 
-        final public String advertText() {
+        final public String makeAdValue() {
         	if (isAccessible) {
-        		AbstractMakeAd ad = runner.getMakeAd();
-        		ad.init(runner);
-        		return ad.requireValue();
+        		return runner.getMakeAd().requireValue();
         	}
         	throw new RuntimeException("Access forbidden for Advert source");
         }}}
