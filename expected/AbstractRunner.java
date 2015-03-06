@@ -4,6 +4,7 @@ package fr.diaspec.webcam.generated;
 public abstract class AbstractRunner extends CommonRuncode {
 
     // Taxonomy components (actions, sources)
+	// initialised immediately because final
     private static final AbstractCamera c  = new Camera();
     private static final AbstractIP     ip = new IP();
     private static final AbstractScreen s  = new Screen();
@@ -23,36 +24,35 @@ public abstract class AbstractRunner extends CommonRuncode {
     @Override
     protected void init() {
     	Log.i("gc","starting init()");
+    	
+    	ad = getMakeAd();
+    	ad.init(this);
+    	ctxs.add(ad);
+        
+    	mp = getProcessPicture();
+        mp.init(this);
+        ctxs.add(mp);
+        
+        as = getComposeDisplay();
+        as.init(this);
+        ctxs.add(as);
+        
+        sc = getDisplay();
+        sc.init(this); // give them a pointer to this instance of Runner (for querying resources)
+        ctrls.add(sc);
+           	
     	// taxonomy configuration
     	acts.add(s);
     	srcs.add(c);
     	srcs.add(ip);
-    	
-    	// IP is an odd one out, it should be initialised first,
-    	// so it has a chance to fetch stuff from the network before being polled.
-    	// ugly hack. TODO consider just killing this. the user will be informed
-    	// if they take a picture and internet wasn't ready yet.
-    	//ip.init(this);
-    	
-        ad = getMakeAd();
-        mp = getProcessPicture();
-        as = getComposeDisplay();
-        sc = getDisplay();
-        
-        sc.init(this); // give them a pointer to this instance of Runner (for querying resources)
-        mp.init(this);
-        ad.init(this);
-        as.init(this);
-        
-        ctxs.add(mp);
-        ctxs.add(ad);
-        ctxs.add(as);
-        ctrls.add(sc);
-        
+    	        
+        // subscription relations
         c.addSubscriber(mp);
         mp.addSubscriber(as);
         as.addSubscriber(sc);
   
+        // resources have their init() called once the programmer 
+        // uses the run() method, since they start the publication cycle.
     }
    
     public AbstractScreen getScreen() {
