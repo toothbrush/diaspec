@@ -1,3 +1,4 @@
 accept command line arguments and options
 output static verification rules (static analysis on heavily abstracted app, actually)
 figure out language-java and output the framework depending on the specifications
+does get X work if X is a context which also does a get?
