@@ -50,7 +50,7 @@ lVar ty nm value = LocalVars [] ty [VarDecl (VarId (Ident nm)) value]
 
 proxyClGet :: [Char] -> String -> Maybe Type -> Decl
 proxyClGet srcName proxyName srcTy =
-  proxyCl srcName proxyName srcTy ("query" ++ srcName ++ "Value")
+  proxyCl proxyName srcTy ("query" ++ srcName ++ "Value")
   []
   [BlockStmt (IfThenElse
               (ExpName (Name [Ident "isAccessible"]))
@@ -68,8 +68,9 @@ proxyClGet srcName proxyName srcTy =
                                    (ClassType [(Ident "RuntimeException",[])])
                                    [Lit (String$"Access forbidden for "++srcName++" source")] Nothing))])))]
 
+proxyClDo :: String -> String -> [FormalParam] -> Decl
 proxyClDo actName proxyName methArgs =
-  proxyCl actName proxyName Nothing ("do" ++ actName ++ "Action")
+  proxyCl proxyName Nothing ("do" ++ actName ++ "Action")
   methArgs
   [BlockStmt (IfThenElse
               (ExpName (Name [Ident "isAccessible"]))
@@ -86,9 +87,12 @@ proxyClDo actName proxyName methArgs =
                            (Throw (InstanceCreation []
                                    (ClassType [(Ident "RuntimeException",[])])
                                    [Lit (String$"Access forbidden for "++actName++" action")] Nothing))])))]
-
--- proxyCl :: [Char] -> String -> RefType -> String -> Decl
-proxyCl srcName proxyName srcTy pMethName methArgs proxyBody =
+proxyCl :: String
+        -> Maybe Type
+        -> String
+        -> [FormalParam]
+        -> [BlockStmt] -> Decl
+proxyCl proxyName srcTy pMethName methArgs proxyBody =
   MemberDecl
   (MemberClassDecl
    (ClassDecl [Protected,Final]

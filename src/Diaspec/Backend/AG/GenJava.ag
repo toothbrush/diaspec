@@ -163,9 +163,6 @@ sem ControllerInteraction
                       loc.destrProxy = proxyOff @loc.proxyName @loc.vName
                       loc.proxyClass = [proxyClDo @act @loc.proxyName (funcparams$(@loc.inType, "value"):[])]
 
-                        
-
-
 
 -- | determines the return type of a context.
 sem Publish
@@ -302,8 +299,7 @@ jtype t = case t of
      DPicture -> wrap "Bitmap" 
   where
     wrap :: String -> RefType
-    wrap s = ClassRefType (ClassType
-                             [(Ident s,[])])
+    wrap s = ClassRefType (ClassType [(Ident s,[])])
 
                            
 }
