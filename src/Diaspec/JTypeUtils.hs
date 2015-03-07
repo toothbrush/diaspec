@@ -2,6 +2,7 @@ module Diaspec.JTypeUtils where
 
 import Language.Java.Syntax
 import Data.String.Utils (split)
+import Data.Char (toLower)
 
 funcparams :: [(RefType, String)] -> [FormalParam]
 funcparams = map (\(t,n) -> FormalParam [] (RefType t) False (VarId (Ident n)))
@@ -222,5 +223,54 @@ actionMethod nm ty =
 
 clsRunner pkg = clsResource pkg "Runner"
                 (Just -- extends CommonRuncode
-                 (ClassRefType (ClassType [(Ident "CommonRuncode", [])]))) []
-                []
+                 (ClassRefType (ClassType [(Ident "CommonRuncode", [])])))
+                [] -- implements nothing
+
+initFunc body = methodDecl
+    [Annotation (MarkerAnnotation {annName = Name [Ident
+    "Override"]}),Protected] Nothing
+    "init" []
+    (Just (Block body))
+
+fieldDecl nm v init = MemberDecl
+   (FieldDecl (modifs init)
+    (RefType (ClassRefType (ClassType [(Ident$ "Abstract"++nm,[])])))
+    [VarDecl (VarId (Ident v))
+     (val init)])
+   where modifs True  = [Private, Static, Final]
+         modifs False = [Private]
+         val    True  = (Just (InitExp (InstanceCreation []
+                                        (ClassType [(Ident nm,[])]) [] Nothing)))
+         val    False = Nothing
+
+deployMethod nm v init = 
+  methodDecl (modifs init)
+   (Just (RefType
+          (ClassRefType (ClassType [(Ident$"Abstract"++nm,[])]))))
+   ("get"++nm++"Instance") []
+   (impl init)
+  where impl True  = Just (Block
+                          [BlockStmt (Return (Just
+                                              (ExpName (Name [Ident v]))))])
+        impl False = Nothing
+        modifs True  = [Public]
+        modifs False = [Public, Abstract]
+  
+addtoList list what = BlockStmt
+            (ExpStmt (MethodInv
+                      (MethodCall
+                       (Name [Ident list
+                             ,Ident "add"])
+                       [ExpName (Name [Ident what])])))
+initComponent nm v =
+  [ BlockStmt (ExpStmt (Assign (NameLhs (Name [Ident v]))
+                      EqualA (MethodInv (MethodCall (Name [Ident$"get"++nm++"Instance"]) []))))
+  , BlockStmt (ExpStmt (MethodInv (MethodCall (Name [Ident v,Ident "init"]) [This])))]
+
+subscribesTo recv pub = [BlockStmt (ExpStmt
+                              (MethodInv
+                               (MethodCall
+                                (Name [Ident pub,Ident "addSubscriber"])
+                                [ExpName (Name [Ident recv])])))]
+
+instanceVar = (++ "_") . map toLower

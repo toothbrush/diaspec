@@ -2,6 +2,7 @@ imports
 {
 import Language.Java.Syntax
 import Data.Maybe (fromJust)
+import Data.Char (toLower)
 
 import Diaspec.JTypeUtils
 }
@@ -15,21 +16,30 @@ type TyEnv = [(String, DType)]
 ----------------------------------
 
 -- TODO split the two AGs: for pprinting and for compilation.
+attr Specification
+  syn runner   :: {CompilationUnit} -- AbstractRunner class
+                  
 attr Specification Declarations
   syn genJ   :: {[CompilationUnit]}
-  syn runner   :: {CompilationUnit}
 
 attr Declaration
   syn genJ   :: {CompilationUnit}
+  syn fieldDecl :: {Decl} -- the field for in Runner
+  syn deployMethod :: {Decl} -- attaching deployments
 
 attr Declarations Declaration
   inh pkg      :: {Maybe PackageDecl}  -- the package name, derived from specs filename
   inh tyEnv    :: {TyEnv} -- environment to keep track of output types of components.
+  syn initStmts :: {[BlockStmt]}
+  syn subsStmts :: {[BlockStmt]}
 
 attr Declarations
   syn allTypes :: {TyEnv}
+  syn fieldDecls :: {[Decl]}
+  syn deployMethods :: {[Decl]}
 
 attr Declaration
+  syn name :: {String}
   syn myType   :: {TyEnv}
 
 attr DType
@@ -44,6 +54,7 @@ attr ContextInteraction ControllerInteraction
   inh tyEnv    :: {TyEnv} -- environment to keep track of output types of components.
   inh thisCName :: {String}
   syn methods :: {[Decl]}
+  syn subsStmts :: {[BlockStmt]}
 
 attr Publish
   inh ty      :: {DType} -- turn it into a Maybe, maybe.
@@ -63,13 +74,24 @@ sem Specification
              ds.tyEnv  = @ds.allTypes
              loc.pkg   = pack @name
              ds.pkg    = @loc.pkg
-             lhs.runner = clsRunner @loc.pkg 
+             lhs.runner = clsRunner @loc.pkg
+                          ((initFunc (@ds.initStmts ++ @ds.subsStmts)):
+                             (@ds.fieldDecls ++ @ds.deployMethods))
 
 sem Declarations
   | Cons     lhs.genJ = @hd.genJ : @tl.genJ -- TODO figure out why list is reversing
              lhs.allTypes = @hd.myType ++ @tl.allTypes
-  | Nil      lhs.genJ     = []
-             lhs.allTypes = []
+             lhs.deployMethods = @hd.deployMethod : @tl.deployMethods
+             lhs.fieldDecls = @hd.fieldDecl : @tl.fieldDecls
+             lhs.initStmts = @hd.initStmts ++ @tl.initStmts
+             lhs.subsStmts = @hd.subsStmts ++ @tl.subsStmts
+  | Nil      lhs.genJ          = []
+             lhs.allTypes      = []
+             lhs.deployMethods = []
+             lhs.fieldDecls    = []
+             lhs.initStmts     = []
+             lhs.subsStmts     = []
+
 
 sem DType
   | DBool    lhs.javaType = jtype @self
@@ -78,16 +100,42 @@ sem DType
   | DString  lhs.javaType = jtype @self
 
 sem Declaration
+  | Source      lhs.deployMethod = deployMethod @name (instanceVar @name) True
+                lhs.fieldDecl    = fieldDecl    @name (instanceVar @name) True
+                lhs.name         = @name
+                lhs.initStmts    = [addtoList "srcs" (instanceVar @name)]
+                lhs.subsStmts    = []
+  | Action      lhs.deployMethod = deployMethod @name (instanceVar @name) True
+                lhs.fieldDecl    = fieldDecl    @name (instanceVar @name) True
+                lhs.name         = @name
+                lhs.initStmts    = [addtoList "acts" (instanceVar @name)]
+                lhs.subsStmts    = []
+  | Context     lhs.deployMethod = deployMethod @name (instanceVar @name) False
+                lhs.fieldDecl    = fieldDecl    @name (instanceVar @name) False
+                lhs.name         = @name
+                lhs.initStmts    = initComponent @name (instanceVar @name) ++
+                                   [addtoList "ctxs" (instanceVar @name)]
+                lhs.subsStmts    = @contr.subsStmts
+  | Controller  lhs.deployMethod = deployMethod @name (instanceVar @name) False
+                lhs.fieldDecl    = fieldDecl    @name (instanceVar @name) False
+                lhs.name         = @name
+                lhs.initStmts    = initComponent @name (instanceVar @name) ++
+                                   [addtoList "ctrls" (instanceVar @name)]
+                lhs.subsStmts    = @contr.subsStmts
+
+sem Declaration
   | Source      lhs.genJ = clsSource @lhs.pkg @name @ty.javaType
                 lhs.myType = [(@name, @ty.self)]
   | Action      lhs.genJ = clsAction @lhs.pkg @name @ty.javaType
                 lhs.myType = []
-  | Context     lhs.genJ = clsContext @lhs.pkg @name @contr.classImplements -- implements, which depend on IC.
+  | Context     lhs.genJ = clsContext @lhs.pkg @name
+                           @contr.classImplements -- implements, which depend on IC.
                            (jtype @ty.self) @contr.methods
                 contr.ty = @ty.self
                 contr.thisCName = @name
                 lhs.myType = [(@name, @ty.self)]
-  | Controller  lhs.genJ   = clsController @lhs.pkg @name @contr.classImplements @contr.methods
+  | Controller  lhs.genJ   = clsController @lhs.pkg @name
+                             @contr.classImplements @contr.methods
                 contr.thisCName = @name
                 lhs.myType = []
 
@@ -98,6 +146,7 @@ sem ContextInteraction
                                                                   [ActualType @loc.inType])])]
                  loc.inType = jtype (fromJust $ lookup @name @lhs.tyEnv) 
                  loc.methName = "on" ++ @name ++ "Provided"
+                 lhs.subsStmts = (instanceVar @lhs.thisCName) `subscribesTo` (instanceVar @name)
                  lhs.methods= [ methodDecl protectedAbstract (Just @pub.ret) --return
                                 @loc.methName
                                 (funcparams $ (@loc.inType, "newValue") :  @get.fparam)
@@ -118,6 +167,7 @@ sem ContextInteraction
   | WhenRequired lhs.classImplements = [ClassRefType (ClassType [(Ident "Context",[])])]
                  loc.methName = "when" ++ @lhs.thisCName ++ "Required"
                  loc.myType  = jtype . fromJust $ lookup @lhs.thisCName @lhs.tyEnv
+                 lhs.subsStmts = []
                  lhs.methods= [ methodDecl protectedAbstract
                                 (Just$ RefType @loc.myType) --return TODO simple inh instead of lookup?
                                 @loc.methName (funcparams @get.fparam) -- TODO proxy??
@@ -144,6 +194,8 @@ sem ControllerInteraction
                       loc.methName = "on" ++ @name ++ "Provided"
                       loc.vName  = "proxy"
                       loc.proxyName = @act ++ "Proxy"
+                      lhs.subsStmts = (instanceVar @lhs.thisCName)
+                                      `subscribesTo` (instanceVar @name)
                       lhs.methods= [ methodDecl protectedAbstract Nothing --return
                                      @loc.methName
                                      (funcparams $ (@loc.inType, "newValue") :  @loc.proxyparam)

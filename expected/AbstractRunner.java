@@ -8,13 +8,6 @@ public abstract class AbstractRunner extends CommonRuncode {
     private static final AbstractCamera c  = new Camera();
     private static final AbstractIP     ip = new IP();
     private static final AbstractScreen s  = new Screen();
-  
-    // to-be-implemented components: (contexts, controllers)
-    public abstract AbstractProcessPicture  getProcessPicture();
-    public abstract AbstractMakeAd          getMakeAd();
-    public abstract AbstractComposeDisplay  getComposeDisplay();
-    public abstract AbstractDisplay         getDisplay();
-
     // these need to be class fields so that the instances are long-lived.
     private AbstractMakeAd ad;
     private AbstractProcessPicture mp;
@@ -54,6 +47,13 @@ public abstract class AbstractRunner extends CommonRuncode {
         // resources have their init() called once the programmer 
         // uses the run() method, since they start the publication cycle.
     }
+  
+    // to-be-implemented components: (contexts, controllers)
+    public abstract AbstractProcessPicture  getProcessPicture();
+    public abstract AbstractMakeAd          getMakeAd();
+    public abstract AbstractComposeDisplay  getComposeDisplay();
+    public abstract AbstractDisplay         getDisplay();
+
    
     public AbstractScreen getScreen() {
         return s;
