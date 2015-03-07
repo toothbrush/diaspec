@@ -51,7 +51,7 @@ proxyClGet srcName proxyName srcTy =
                                     (MethodInv
                                      (PrimaryMethodCall
                                       (MethodInv (MethodCall
-                                                  (Name [Ident "runner",Ident$"get"++srcName]) [])) []
+                                                  (Name [Ident "runner",Ident$"get"++srcName++"Instance"]) [])) []
                                       (Ident "requireValue") []))))]))
               (StmtBlock (Block
                           [BlockStmt
@@ -83,8 +83,9 @@ proxyClDo actName proxyName methArgs =
                             (MethodInv
                              (PrimaryMethodCall
                               (MethodInv
-                               (MethodCall (Name [Ident "runner",Ident$ "get"++actName]) [])) []
-                              (Ident "trigger") [ExpName (Name [Ident "newVisual"])])))]))
+                               (MethodCall (Name [Ident "runner",Ident$ "get"++actName++"Instance"]) [])) []
+                              -- todo shoudl probably parameterise over "value"
+                              (Ident "trigger") [ExpName (Name [Ident "value"])])))]))
               (StmtBlock (Block
                           [BlockStmt
                            (Throw (InstanceCreation []
