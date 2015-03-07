@@ -15,6 +15,7 @@ type TyEnv = [(String, DType)]
 -- Java generation
 ----------------------------------
 
+-- TODO for every reference, check that it's implemented somewhere.
 -- TODO split the two AGs: for pprinting and for compilation.
 attr Specification
   syn runner   :: {CompilationUnit} -- AbstractRunner class
@@ -68,6 +69,7 @@ attr Get
   syn initProxy :: {[BlockStmt]}
   syn destrProxy :: {[BlockStmt]}
   syn proxyClass :: {[Decl]}
+
 
 sem Specification
   | S        lhs.genJ  = @ds.genJ 
@@ -172,7 +174,8 @@ sem ContextInteraction
                                 (Just$ RefType @loc.myType) --return TODO simple inh instead of lookup?
                                 @loc.methName (funcparams @get.fparam) -- TODO proxy??
                                 Nothing
-                              , methodDecl [Protected, Final] Nothing "requireValue"
+                              , methodDecl [Protected, Final]
+                                (Just$ RefType @loc.myType) "requireValue"
                                 [] -- no args
                                 (stmts$
                                  @get.initProxy ++
@@ -192,7 +195,7 @@ sem ControllerInteraction
                                                                        [ActualType @loc.inType])])]
                       loc.inType = jtype (fromJust $ lookup @name @lhs.tyEnv) 
                       loc.methName = "on" ++ @name ++ "Provided"
-                      loc.vName  = "proxy"
+                      loc.vName  = "local" ++ @act ++ "Proxy"
                       loc.proxyName = @act ++ "Proxy"
                       lhs.subsStmts = (instanceVar @lhs.thisCName)
                                       `subscribesTo` (instanceVar @name)
@@ -248,12 +251,13 @@ sem Get
               lhs.initProxy  = []
               lhs.proxyClass = []
               lhs.destrProxy = []
-  | Just      lhs.args       = [ExpName (Name [Ident "proxy"])] -- passed to dev's implementationy
+  | Just      lhs.args       = [ExpName (Name [Ident @loc.vName])] -- passed to dev's implementationy
               loc.proxyType  = Just (RefType (jtype.fromJust $ lookup @just @lhs.tyEnv))
               loc.vName      = "local" ++ @just ++ "Proxy"
               loc.proxyName  = @just ++ "Proxy"
               lhs.initProxy  = proxyOn  @loc.proxyName @loc.vName
               lhs.destrProxy = proxyOff @loc.proxyName @loc.vName
               lhs.proxyClass = [proxyClGet @just @loc.proxyName @loc.proxyType]
-              lhs.fparam     = [(ClassRefType (ClassType [(Ident @loc.proxyName,[])]), "proxy")]
+              lhs.fparam     = [(ClassRefType (ClassType [(Ident @loc.proxyName,[])])
+                                 , @loc.vName)]
 
