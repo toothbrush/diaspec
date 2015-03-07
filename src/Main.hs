@@ -14,6 +14,7 @@ import Diaspec.Backend.PrintDiaspec
 import Diaspec.Backend.GenerateJava
 
 import Language.Java.Pretty (prettyPrint)
+import Language.Java.Syntax
 import UU.Pretty (disp, render, PP_Doc (..))
 
 import Data.List.Utils (split)
@@ -110,13 +111,29 @@ writeStng (Just f)   c = do putStrLn$"----\n\nWriting to file: " ++ show f ++ ".
 handleJava :: FilePath -> FilePath -> IO ()
 handleJava i   o = do (pn, spec) <- readSomething i
                       let res = ((genJava . S pn) . parseGrammar . alexScanTokens) spec
-                          txt = map prettyPrint res
                       putStrLn "Debug output: spec was"
                       putStrLn spec
                       putStrLn "---------\n"
-                      --TODO write files into DIR
-                      mapM_ putStrLn txt
+                      mapM_ (outputFW o) res
                       
+outputFW :: FilePath -> CompilationUnit -> IO()
+outputFW fp c = do
+  let file = fp </> className c <.> "java"
+  putStrLn$"writing class " ++ show file
+  writeClass file c
+
+writeClass :: FilePath -> CompilationUnit -> IO ()
+writeClass f c = writeFile f (prettyPrint c)
+
+className :: CompilationUnit -> String
+className (CompilationUnit _ _ [ts]) =
+  case ts of
+    ClassTypeDecl cd ->
+      case cd of
+        ClassDecl _ n _ _ _ _ ->
+          case n of
+            Ident s -> s
+  
 
 handlePretty :: (Specification -> PP_Doc) -> FilePath -> Maybe FilePath -> IO ()
 handlePretty pf i o = do

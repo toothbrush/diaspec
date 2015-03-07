@@ -227,8 +227,9 @@ clsRunner pkg = clsResource pkg "Runner"
                 [] -- implements nothing
 
 initFunc body = methodDecl
-    [Annotation (MarkerAnnotation {annName = Name [Ident
-    "Override"]}),Protected] Nothing
+    [Annotation
+     MarkerAnnotation {annName = Name [Ident "Override"]}
+    ,Protected] Nothing
     "init" []
     (Just (Block body))
 
@@ -239,8 +240,8 @@ fieldDecl nm v init = MemberDecl
      (val init)])
    where modifs True  = [Private, Static, Final]
          modifs False = [Private]
-         val    True  = (Just (InitExp (InstanceCreation []
-                                        (ClassType [(Ident nm,[])]) [] Nothing)))
+         val    True  = Just (InitExp (InstanceCreation []
+                                       (ClassType [(Ident nm,[])]) [] Nothing))
          val    False = Nothing
 
 deployMethod nm v init = 

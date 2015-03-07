@@ -68,7 +68,7 @@ attr Get
   syn initProxy :: {[BlockStmt]}
   syn destrProxy :: {[BlockStmt]}
   syn proxyClass :: {[Decl]}
-                 
+
 sem Specification
   | S        lhs.genJ  = @ds.genJ 
              ds.tyEnv  = @ds.allTypes
