@@ -110,6 +110,7 @@ writeStng (Just f)   c = do putStrLn$"----\n\nWriting to file: " ++ show f ++ ".
 
 handleJava :: FilePath -> FilePath -> IO ()
 handleJava i   o = do (pn, spec) <- readSomething i
+                      putStrLn$ "Will write framework to: " ++ o 
                       let res = ((genJava . S pn) . parseGrammar . alexScanTokens) spec
                       putStrLn "Debug output: spec was"
                       putStrLn spec
