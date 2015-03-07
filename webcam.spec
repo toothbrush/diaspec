@@ -16,6 +16,7 @@ context ProcessPicture as Picture {
 
 context ComposeDisplay as Picture {
     when_provided ProcessPicture
+    get MakeAd
     maybe_publish }
 
 context MakeAd as String {
