@@ -193,7 +193,7 @@ clsResource :: Maybe PackageDecl
             -> CompilationUnit -- ^ give back a complete class
 clsResource pkg clname extends implements body =
   CompilationUnit pkg [] -- no imports
-  [ClassTypeDecl $ ClassDecl publicAbstract
+  [ClassTypeDecl $ ClassDecl [Public, Abstract]
    (Ident$ "Abstract"++clname)
    [] -- not a generic class, hence no type parameters
    extends implements
@@ -220,16 +220,11 @@ clsSource pkg clname ty =
    [classRef  [(Ident "Source",    [ActualType ty])]] -- implements Source interface.
    (sourceMethod clname ty)
 
-publicFinal       = [Public,    Final   ]
-publicAbstract    = [Public,    Abstract]
-protectedAbstract = [Protected, Abstract]
-
-  
 sourceMethod :: String -- ^ name of source
              -> RefType -- ^ expected return type.
              -> [Decl]
 sourceMethod nm ty =
-  [ methodDecl protectedAbstract (Just$ RefType ty)
+  [ methodDecl [Protected, Abstract] (Just$ RefType ty)
     ("get"++nm++"Value") [] Nothing
   , methodDecl [Public] (Just$RefType ty)
     "requireValue" []
@@ -243,7 +238,7 @@ actionMethod :: String -- ^ name of source
              -> RefType -- ^ expected return type.
              -> [Decl]
 actionMethod nm ty =
-  [ methodDecl protectedAbstract Nothing 
+  [ methodDecl [Protected, Abstract] Nothing 
     ("do"++nm++"Action") (funcparams [(ty, "value")]) Nothing
   , methodDecl [Public] Nothing
     "trigger" (funcparams [(ty, "value")])
@@ -286,9 +281,7 @@ deployMethod nm v init =
         modifs True  = [Public]
         modifs False = [Public, Abstract]
   
-addtoList list what = BlockStmt
-            (methInv [list, "add"]
-             [varAccess what])
+addtoList list what = BlockStmt (methInv [list, "add"] [varAccess what])
 
 initComponent nm v =
   [ BlockStmt (assign (NameLhs (Name [Ident v]))

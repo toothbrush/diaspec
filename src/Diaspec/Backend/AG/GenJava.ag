@@ -154,11 +154,11 @@ sem ContextInteraction
                  lhs.subsStmts = (instanceVar @lhs.thisCName)
                                  `subscribesTo`
                                  (instanceVar @name)
-                 lhs.methods= [ methodDecl protectedAbstract (Just @pub.ret) --return
+                 lhs.methods= [ methodDecl [Protected,Abstract] (Just @pub.ret) --return
                                 @loc.methName
                                 (funcparams $ (@loc.inType, "newValue") :  @get.fparam)
                                 Nothing
-                              , methodDecl publicFinal Nothing
+                              , methodDecl [Public, Final] Nothing
                                 "trigger"
                                 (funcparams$ (@loc.inType, "value") : [])
                                 (stmts $
@@ -175,7 +175,7 @@ sem ContextInteraction
                  loc.methName = "when" ++ @lhs.thisCName ++ "Required"
                  loc.myType  = jtype . fromJust $ lookup @lhs.thisCName @lhs.tyEnv
                  lhs.subsStmts = []
-                 lhs.methods= [ methodDecl protectedAbstract
+                 lhs.methods= [ methodDecl [Protected,Abstract]
                                 (Just$ RefType @loc.myType)
                                 --return TODO simple inh instead of lookup of myType?
                                 @loc.methName (funcparams @get.fparam)
@@ -202,12 +202,12 @@ sem ControllerInteraction
                 loc.proxyName = @act ++ "Proxy"
                 lhs.subsStmts = (instanceVar @lhs.thisCName)
                                 `subscribesTo` (instanceVar @name)
-                lhs.methods= [ methodDecl protectedAbstract Nothing --return
+                lhs.methods= [ methodDecl [Protected,Abstract] Nothing --return
                                @loc.methName
                                (funcparams $ (@loc.inType, "newValue") :
                                               @loc.proxyparam)
                                Nothing
-                             , methodDecl publicFinal Nothing
+                             , methodDecl [Public, Final] Nothing
                                "trigger"
                                (funcparams [(@loc.inType, "value")])
                                (stmts $
