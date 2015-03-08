@@ -23,25 +23,23 @@ attr Specification
 attr Specification Declarations
   syn genJ   :: {[CompilationUnit]}
 
-attr Declaration
-  syn genJ   :: {CompilationUnit}
-  syn fieldDecl :: {Decl} -- the field for in Runner
-  syn deployMethod :: {Decl} -- attaching deployments
-
 attr Declarations Declaration
-  inh pkg      :: {Maybe PackageDecl}  -- the package name, derived from specs filename
-  inh tyEnv    :: {TyEnv} -- environment to keep track of output types of components.
+  inh pkg       :: {Maybe PackageDecl}  -- the package name, derived from specs filename
+  inh tyEnv     :: {TyEnv} -- environment to keep track of output types of components.
   syn initStmts :: {[BlockStmt]}
   syn subsStmts :: {[BlockStmt]}
 
 attr Declarations
   syn allTypes :: {TyEnv}
-  syn fieldDecls :: {[Decl]}
   syn deployMethods :: {[Decl]}
+  syn fieldDecls :: {[Decl]} -- the field for in Runner
 
 attr Declaration
-  syn name :: {String}
-  syn myType   :: {TyEnv}
+  syn genJ         :: {CompilationUnit}
+  syn deployMethod :: {Decl} -- attaching deployments
+  syn name         :: {String}
+  syn myType       :: {TyEnv}
+  syn fieldDecl :: {Decl} -- the field for in Runner
 
 attr DType
   syn javaType :: {RefType}
@@ -52,10 +50,10 @@ attr ContextInteraction
 
 attr ContextInteraction ControllerInteraction
   syn classImplements :: {[RefType]}
-  inh tyEnv    :: {TyEnv} -- environment to keep track of output types of components.
-  inh thisCName :: {String}
-  syn methods :: {[Decl]}
-  syn subsStmts :: {[BlockStmt]}
+  inh tyEnv           :: {TyEnv} -- environment of output types of components.
+  inh thisCName       :: {String}
+  syn methods         :: {[Decl]}
+  syn subsStmts       :: {[BlockStmt]}
 
 attr Publish
   inh ty      :: {DType} -- turn it into a Maybe, maybe.
@@ -63,36 +61,36 @@ attr Publish
   syn notify  :: {BlockStmt}
 
 attr Get
-  inh tyEnv   :: {TyEnv}
-  syn args    :: {[Exp]}
-  syn fparam  :: {[(RefType, String)]}
-  syn initProxy :: {[BlockStmt]}
+  inh tyEnv      :: {TyEnv}
+  syn args       :: {[Exp]}
+  syn fparam     :: {[(RefType, String)]}
+  syn initProxy  :: {[BlockStmt]}
   syn destrProxy :: {[BlockStmt]}
   syn proxyClass :: {[Decl]}
 
 
 sem Specification
-  | S        lhs.genJ  = @ds.genJ 
-             ds.tyEnv  = @ds.allTypes
-             loc.pkg   = pack @name
-             ds.pkg    = @loc.pkg
-             lhs.runner = clsRunner @loc.pkg
-                          ((initFunc (@ds.initStmts ++ @ds.subsStmts)):
-                             (@ds.fieldDecls ++ @ds.deployMethods))
+  | S  lhs.genJ   = @ds.genJ 
+       ds.tyEnv   = @ds.allTypes
+       loc.pkg    = pack @name
+       ds.pkg     = @loc.pkg
+       lhs.runner = clsRunner @loc.pkg
+                    ((initFunc (@ds.initStmts ++ @ds.subsStmts)):
+                       (@ds.fieldDecls ++ @ds.deployMethods))
 
 sem Declarations
-  | Cons     lhs.genJ = @hd.genJ : @tl.genJ -- TODO figure out why list is reversing
-             lhs.allTypes = @hd.myType ++ @tl.allTypes
-             lhs.deployMethods = @hd.deployMethod : @tl.deployMethods
-             lhs.fieldDecls = @hd.fieldDecl : @tl.fieldDecls
-             lhs.initStmts = @hd.initStmts ++ @tl.initStmts
-             lhs.subsStmts = @hd.subsStmts ++ @tl.subsStmts
-  | Nil      lhs.genJ          = []
-             lhs.allTypes      = []
-             lhs.deployMethods = []
-             lhs.fieldDecls    = []
-             lhs.initStmts     = []
-             lhs.subsStmts     = []
+  | Cons lhs.genJ          = @hd.genJ : @tl.genJ -- TODO list is reversing?
+         lhs.deployMethods = @hd.deployMethod : @tl.deployMethods
+         lhs.fieldDecls    = @hd.fieldDecl : @tl.fieldDecls
+         lhs.allTypes      = @hd.myType    ++ @tl.allTypes
+         lhs.initStmts     = @hd.initStmts ++ @tl.initStmts
+         lhs.subsStmts     = @hd.subsStmts ++ @tl.subsStmts
+  | Nil  lhs.genJ          = []
+         lhs.allTypes      = []
+         lhs.deployMethods = []
+         lhs.fieldDecls    = []
+         lhs.initStmts     = []
+         lhs.subsStmts     = []
 
 
 sem DType
@@ -126,20 +124,20 @@ sem Declaration
                 lhs.subsStmts    = @contr.subsStmts
 
 sem Declaration
-  | Source      lhs.genJ = clsSource @lhs.pkg @name @ty.javaType
+  | Source      lhs.genJ   = clsSource @lhs.pkg @name @ty.javaType
                 lhs.myType = [(@name, @ty.self)]
-  | Action      lhs.genJ = clsAction @lhs.pkg @name @ty.javaType
+  | Action      lhs.genJ   = clsAction @lhs.pkg @name @ty.javaType
                 lhs.myType = []
-  | Context     lhs.genJ = clsContext @lhs.pkg @name
-                           @contr.classImplements -- implements, which depend on IC.
-                           (jtype @ty.self) @contr.methods
-                contr.ty = @ty.self
-                contr.thisCName = @name
+  | Context     lhs.genJ   = clsContext @lhs.pkg @name
+                             @contr.classImplements -- implements, which depend on IC.
+                             (jtype @ty.self) @contr.methods
+                contr.ty   = @ty.self
                 lhs.myType = [(@name, @ty.self)]
+                contr.thisCName = @name
   | Controller  lhs.genJ   = clsController @lhs.pkg @name
                              @contr.classImplements @contr.methods
-                contr.thisCName = @name
                 lhs.myType = []
+                contr.thisCName = @name
 
 -- | influences name of member method, 
 sem ContextInteraction
