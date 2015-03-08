@@ -33,14 +33,16 @@ runnerInit b    = [ MemberDecl (FieldDecl (runnerVarModifs b) (RefType absRunCls
                     "init"
                     (funcparams [(absRunCls, "runner")])
                     (Just (Block [BlockStmt
-                                  (ExpStmt (Assign (FieldLhs (PrimaryFieldAccess This (Ident "runner")))
-                                            EqualA (ExpName (Name [Ident "runner"]))))]))
+                                  (assign (FieldLhs (PrimaryFieldAccess This (Ident "runner")))
+                                   (varAccess "runner"))]))
                   ]
   where runnerMethModifs True  = [Final, Protected]
         runnerMethModifs False = [Protected]
         runnerVarModifs  True  = [Private]
         runnerVarModifs  False = [Protected]
 
+varAccess :: String -> Exp
+varAccess n = ExpName (Name [Ident n])
 
 pack :: String -> Maybe PackageDecl
 pack n = packagify $ concat ["fr.diaspec.", n, ".generated"]
@@ -49,6 +51,8 @@ pack n = packagify $ concat ["fr.diaspec.", n, ".generated"]
 stmts :: [BlockStmt] -> Maybe Block
 stmts = Just . Block
 
+stBlock l = StmtBlock (Block (map BlockStmt l))
+  
 lVar :: Type -> String -> Maybe VarInit -> BlockStmt
 lVar ty nm value = LocalVars [] ty [VarDecl (VarId (Ident nm)) value]
 
@@ -58,19 +62,17 @@ proxyClGet srcName proxyName srcTy =
   []
   [BlockStmt (IfThenElse
               (ExpName (Name [Ident "isAccessible"]))
-              (StmtBlock (Block
-                          [BlockStmt
-                           (Return (Just
-                                    (MethodInv
-                                     (PrimaryMethodCall
-                                      (methCall ["runner","get"++srcName++"Instance"] [])
-                                      []
-                                      (Ident "requireValue") []))))]))
-              (StmtBlock (Block
-                          [BlockStmt
-                           (Throw (InstanceCreation []
-                                   (ClassType [(Ident "RuntimeException",[])])
-                                   [Lit (String$"Access forbidden for "++srcName++" source")] Nothing))])))]
+              (stBlock
+               [Return (Just
+                        (MethodInv
+                         (PrimaryMethodCall
+                          (methCall ["runner","get"++srcName++"Instance"] [])
+                          []
+                          (Ident "requireValue") [])))])
+              (stBlock
+               [Throw (InstanceCreation []
+                         (ClassType [(Ident "RuntimeException",[])])
+                         [Lit (String$"Access forbidden for "++srcName++" source")] Nothing)]))]
 
 methodDecl :: [Modifier] -- ^ scope modifiers, abstract, final
            -> Maybe Type -- ^ expected return type.
@@ -90,20 +92,24 @@ proxyClDo actName proxyName methArgs =
   methArgs
   [BlockStmt (IfThenElse
               (ExpName (Name [Ident "isAccessible"]))
-              (StmtBlock (Block
-                          [BlockStmt
-                           (ExpStmt
-                            (MethodInv
-                             (PrimaryMethodCall
-                              (methCall
-                               ["runner","get"++actName++"Instance"] []) []
-                              -- todo shoudl probably parameterise over "value"
-                              (Ident "trigger") [ExpName (Name [Ident "value"])])))]))
-              (StmtBlock (Block
-                          [BlockStmt
-                           (Throw (InstanceCreation []
-                                   (ClassType [(Ident "RuntimeException",[])])
-                                   [Lit (String$"Access forbidden for "++actName++" action")] Nothing))])))]
+              (stBlock
+               [ExpStmt
+                 (MethodInv
+                  (PrimaryMethodCall
+                   (methCall
+                    ["runner","get"++actName++"Instance"] []) []
+                   -- todo shoudl probably parameterise over "value"
+                   (Ident "trigger") [varAccess "value"]))])
+              (stBlock
+               [Throw (InstanceCreation []
+                       (ClassType [(Ident "RuntimeException",[])])
+                       [Lit (String$"Access forbidden for "++actName++" action")] Nothing)]))]
+
+
+assign :: Lhs -> Exp -> Stmt
+assign l r = ExpStmt (Assign l EqualA r)
+
+  
 proxyCl :: String
         -> Maybe Type
         -> String
@@ -122,8 +128,8 @@ proxyCl proxyName srcTy pMethName methArgs proxyBody =
                  [FormalParam [] (PrimType BooleanT) False (VarId (Ident "isAccessible"))]
                  (Just (Block
                          [BlockStmt
-                          (ExpStmt (Assign (FieldLhs (PrimaryFieldAccess This (Ident "isAccessible")))
-                                    EqualA (ExpName (Name [Ident "isAccessible"]))))]))
+                          (assign (FieldLhs (PrimaryFieldAccess This (Ident "isAccessible")))
+                           (ExpName (Name [Ident "isAccessible"])))]))
                , MemberDecl (FieldDecl [Private]
                              (PrimType BooleanT)
                              [VarDecl (VarId (Ident "isAccessible"))
@@ -141,10 +147,10 @@ proxyOn proxyName vName =
     (RefType (ClassRefType (ClassType [(Ident proxyName,[])])))
     [VarDecl (VarId (Ident vName)) (Just (InitExp (InstanceCreation [] (ClassType [(Ident proxyName,[])]) [] Nothing)))]
    ,BlockStmt
-    (ExpStmt (MethodInv (MethodCall (Name [Ident vName,Ident "setAccessible"]) [Lit (Boolean True)])))]
+    (methInv [vName,"setAccessible"] [Lit (Boolean True)])]
 
 proxyOff proxyName vName =
-  [BlockStmt (ExpStmt (MethodInv (MethodCall (Name [Ident vName,Ident "setAccessible"]) [Lit (Boolean False)])))]
+  [BlockStmt (methInv [vName,"setAccessible"] [Lit (Boolean False)])]
 
 
 clsContext :: Maybe PackageDecl
@@ -219,7 +225,10 @@ sourceMethod nm ty =
     ("get"++nm++"Value") [] Nothing
   , methodDecl [Public] (Just$RefType ty)
     "requireValue" []
-    (Just (Block [BlockStmt (Return (Just (MethodInv (MethodCall (Name [Ident ("get"++nm++"Value")]) []))))]))
+    (Just (Block [BlockStmt
+                  (Return
+                   (Just
+                    (methCall ["get"++nm++"Value"] [])))]))
   ]
   
 actionMethod :: String -- ^ name of source
@@ -230,8 +239,9 @@ actionMethod nm ty =
    ("do"++nm++"Action") (funcparams [(ty, "value")]) Nothing
   ,methodDecl [Public] Nothing
    "trigger" (funcparams [(ty, "value")])
-   (Just (Block [BlockStmt (ExpStmt (MethodInv (MethodCall (Name [Ident ("do"++nm++"Action")])
-                                                [ExpName (Name [Ident "value"])])))]))
+   (Just (Block [BlockStmt
+                 (methInv ["do"++nm++"Action"]
+                  [varAccess "value"])]))
   ]
                                 
 
@@ -266,26 +276,21 @@ deployMethod nm v init =
    (impl init)
   where impl True  = Just (Block
                           [BlockStmt (Return (Just
-                                              (ExpName (Name [Ident v]))))])
+                                              (varAccess v)))])
         impl False = Nothing
         modifs True  = [Public]
         modifs False = [Public, Abstract]
   
 addtoList list what = BlockStmt
-            (ExpStmt (MethodInv
-                      (MethodCall
-                       (Name [Ident list
-                             ,Ident "add"])
-                       [ExpName (Name [Ident what])])))
-initComponent nm v =
-  [ BlockStmt (ExpStmt (Assign (NameLhs (Name [Ident v]))
-                      EqualA (MethodInv (MethodCall (Name [Ident$"get"++nm++"Instance"]) []))))
-  , BlockStmt (ExpStmt (MethodInv (MethodCall (Name [Ident v,Ident "init"]) [This])))]
+            (methInv [list, "add"]
+             [varAccess what])
 
-subscribesTo recv pub = [BlockStmt (ExpStmt
-                              (MethodInv
-                               (MethodCall
-                                (Name [Ident pub,Ident "addSubscriber"])
-                                [ExpName (Name [Ident recv])])))]
+initComponent nm v =
+  [ BlockStmt (assign (NameLhs (Name [Ident v]))
+               (methCall ["get"++nm++"Instance"] []))
+  , BlockStmt (methInv [v, "init"] [This])]
+
+subscribesTo recv pub = [BlockStmt (methInv [pub, "addSubscriber"]
+                                [varAccess recv])]
 
 instanceVar = (++ "_") . map toLower
