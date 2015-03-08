@@ -159,8 +159,8 @@ sem ContextInteraction
                                 (stmts $
                                   @get.initProxy ++
                                   [ lVar @pub.ret "v"
-                                     (Just (InitExp (MethodInv (MethodCall
-                                        (Name [Ident @loc.methName]) (ExpName (Name [Ident "value"]) : @get.args)))))]
+                                     (Just (methInvInit [@loc.methName]
+                                            (ExpName (Name [Ident "value"]) : @get.args)))]
                                   ++ @get.destrProxy ++
                                   [@pub.notify])
                               ]
@@ -180,9 +180,7 @@ sem ContextInteraction
                                 (stmts$
                                  @get.initProxy ++
                                  [lVar (RefType @loc.myType) "v"
-                                  (Just (InitExp (MethodInv (MethodCall
-                                                             (Name [Ident @loc.methName])
-                                                             @get.args))))
+                                  (Just (methInvInit [@loc.methName] @get.args))
                                  ] ++
                                  @get.destrProxy ++
                                  [ BlockStmt (Return (Just (ExpName (Name [Ident "v"]))))
@@ -208,7 +206,7 @@ sem ControllerInteraction
                                      (funcparams$ (@loc.inType, "value") : [])
                                      (stmts $
                                        @loc.initProxy ++
-                                       [BlockStmt (methInv @loc.methName
+                                       [BlockStmt (methInv [@loc.methName]
                                         [ExpName (Name [Ident "value"])
                                         ,ExpName (Name [Ident @loc.vName])])] -- call on..Provided
                                        ++ @loc.destrProxy)
@@ -229,12 +227,12 @@ sem Publish
   | AlwaysPublish    lhs.ret    = RefType @loc.naked
                      loc.naked  = jtype @lhs.ty
                      lhs.notify = BlockStmt
-                                  (methInv "notify" [ExpName (Name [Ident "v"])])
+                                  (methInv ["notify"] [ExpName (Name [Ident "v"])])
   | MaybePublish     lhs.ret    = RefType$ wrapMaybe @loc.naked
                      loc.naked  = jtype @lhs.ty
                      lhs.notify = BlockStmt
                                   (IfThen (InstanceOf (ExpName (Name [Ident "v"])) (ClassRefType (ClassType [(Ident "Just",[])])))
-                                   (methInv "notify"
+                                   (methInv ["notify"]
                                     [FieldAccess
                                      (PrimaryFieldAccess
                                       (Cast

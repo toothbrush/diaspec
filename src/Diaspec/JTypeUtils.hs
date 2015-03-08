@@ -7,8 +7,15 @@ import Data.Char (toLower)
 wrapMaybe :: RefType -> RefType
 wrapMaybe t = ClassRefType (ClassType [(Ident "Maybe",[ActualType t])])
 
-methInv :: String -> [Argument] -> Stmt
-methInv mname args = ExpStmt (MethodInv (MethodCall (Name [Ident mname]) args))
+methCall :: [String] -> [Argument] -> Exp
+methCall mnames args = MethodInv (MethodCall idents args)
+        where idents = Name (map Ident mnames)
+  
+methInv :: [String] -> [Argument] -> Stmt
+methInv m a = ExpStmt (methCall m a) -- todo uncurry?
+
+methInvInit :: [String] -> [Argument] -> VarInit
+methInvInit mname arg = InitExp (methCall mname arg)
 
 funcparams :: [(RefType, String)] -> [FormalParam]
 funcparams = map (\(t,n) -> FormalParam [] (RefType t) False (VarId (Ident n)))
@@ -56,8 +63,8 @@ proxyClGet srcName proxyName srcTy =
                            (Return (Just
                                     (MethodInv
                                      (PrimaryMethodCall
-                                      (MethodInv (MethodCall
-                                                  (Name [Ident "runner",Ident$"get"++srcName++"Instance"]) [])) []
+                                      (methCall ["runner","get"++srcName++"Instance"] [])
+                                      []
                                       (Ident "requireValue") []))))]))
               (StmtBlock (Block
                           [BlockStmt
@@ -88,8 +95,8 @@ proxyClDo actName proxyName methArgs =
                            (ExpStmt
                             (MethodInv
                              (PrimaryMethodCall
-                              (MethodInv
-                               (MethodCall (Name [Ident "runner",Ident$ "get"++actName++"Instance"]) [])) []
+                              (methCall
+                               ["runner","get"++actName++"Instance"] []) []
                               -- todo shoudl probably parameterise over "value"
                               (Ident "trigger") [ExpName (Name [Ident "value"])])))]))
               (StmtBlock (Block
