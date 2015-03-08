@@ -100,44 +100,44 @@ sem DType
   | DString  lhs.javaType = jtype @self
 
 sem Declaration
-  | Source      lhs.deployMethod = deployMethod @name (instanceVar @name) True
-                lhs.fieldDecl    = fieldDecl    @name (instanceVar @name) True
-                lhs.name         = @name
-                lhs.initStmts    = [addtoList "srcs" (instanceVar @name)]
-                lhs.subsStmts    = []
-  | Action      lhs.deployMethod = deployMethod @name (instanceVar @name) True
-                lhs.fieldDecl    = fieldDecl    @name (instanceVar @name) True
-                lhs.name         = @name
-                lhs.initStmts    = [addtoList "acts" (instanceVar @name)]
-                lhs.subsStmts    = []
-  | Context     lhs.deployMethod = deployMethod @name (instanceVar @name) False
-                lhs.fieldDecl    = fieldDecl    @name (instanceVar @name) False
-                lhs.name         = @name
-                lhs.initStmts    = initComponent @name (instanceVar @name) ++
-                                   [addtoList "ctxs" (instanceVar @name)]
-                lhs.subsStmts    = @contr.subsStmts
-  | Controller  lhs.deployMethod = deployMethod @name (instanceVar @name) False
-                lhs.fieldDecl    = fieldDecl    @name (instanceVar @name) False
-                lhs.name         = @name
-                lhs.initStmts    = initComponent @name (instanceVar @name) ++
-                                   [addtoList "ctrls" (instanceVar @name)]
-                lhs.subsStmts    = @contr.subsStmts
+  | Source     lhs.deployMethod = deployMethod @name (instanceVar @name) True
+               lhs.fieldDecl    = fieldDecl    @name (instanceVar @name) True
+               lhs.name         = @name
+               lhs.initStmts    = [addtoList "srcs" (instanceVar @name)]
+               lhs.subsStmts    = []
+  | Action     lhs.deployMethod = deployMethod @name (instanceVar @name) True
+               lhs.fieldDecl    = fieldDecl    @name (instanceVar @name) True
+               lhs.name         = @name
+               lhs.initStmts    = [addtoList "acts" (instanceVar @name)]
+               lhs.subsStmts    = []
+  | Context    lhs.deployMethod = deployMethod @name (instanceVar @name) False
+               lhs.fieldDecl    = fieldDecl    @name (instanceVar @name) False
+               lhs.name         = @name
+               lhs.initStmts    = initComponent @name (instanceVar @name) ++
+                                  [addtoList "ctxs" (instanceVar @name)]
+               lhs.subsStmts    = @contr.subsStmts
+  | Controller lhs.deployMethod = deployMethod @name (instanceVar @name) False
+               lhs.fieldDecl    = fieldDecl    @name (instanceVar @name) False
+               lhs.name         = @name
+               lhs.initStmts    = initComponent @name (instanceVar @name) ++
+                                  [addtoList "ctrls" (instanceVar @name)]
+               lhs.subsStmts    = @contr.subsStmts
 
 sem Declaration
-  | Source      lhs.genJ   = clsSource @lhs.pkg @name @ty.javaType
-                lhs.myType = [(@name, @ty.self)]
-  | Action      lhs.genJ   = clsAction @lhs.pkg @name @ty.javaType
-                lhs.myType = []
-  | Context     lhs.genJ   = clsContext @lhs.pkg @name
-                             @contr.classImplements -- implements, which depend on IC.
-                             (jtype @ty.self) @contr.methods
-                contr.ty   = @ty.self
-                lhs.myType = [(@name, @ty.self)]
-                contr.thisCName = @name
-  | Controller  lhs.genJ   = clsController @lhs.pkg @name
-                             @contr.classImplements @contr.methods
-                lhs.myType = []
-                contr.thisCName = @name
+  | Source     lhs.genJ   = clsSource @lhs.pkg @name @ty.javaType
+               lhs.myType = [(@name, @ty.self)]
+  | Action     lhs.genJ   = clsAction @lhs.pkg @name @ty.javaType
+               lhs.myType = []
+  | Context    lhs.genJ   = clsContext @lhs.pkg @name
+                            @contr.classImplements -- implements, which depend on IC.
+                            (jtype @ty.self) @contr.methods
+               contr.ty   = @ty.self
+               lhs.myType = [(@name, @ty.self)]
+               contr.thisCName = @name
+  | Controller lhs.genJ   = clsController @lhs.pkg @name
+                            @contr.classImplements @contr.methods
+               lhs.myType = []
+               contr.thisCName = @name
 
 -- | influences name of member method, 
 sem ContextInteraction
@@ -146,7 +146,9 @@ sem ContextInteraction
                                                    [ActualType @loc.inType])]]
                  loc.inType = jtype (fromJust $ lookup @name @lhs.tyEnv) 
                  loc.methName = "on" ++ @name ++ "Provided"
-                 lhs.subsStmts = (instanceVar @lhs.thisCName) `subscribesTo` (instanceVar @name)
+                 lhs.subsStmts = (instanceVar @lhs.thisCName)
+                                 `subscribesTo`
+                                 (instanceVar @name)
                  lhs.methods= [ methodDecl protectedAbstract (Just @pub.ret) --return
                                 @loc.methName
                                 (funcparams $ (@loc.inType, "newValue") :  @get.fparam)
@@ -186,38 +188,38 @@ sem ContextInteraction
                                 ++ runnerInit True
 
 sem ControllerInteraction
-    | WhenContext     lhs.classImplements = [classRef [(Ident "Controller",[])],
-                                             classRef [(Ident "Subscriber",
-                                                        [ActualType @loc.inType])]]
-                      loc.inType = jtype (fromJust $ lookup @name @lhs.tyEnv) 
-                      loc.methName = "on" ++ @name ++ "Provided"
-                      loc.vName  = "local" ++ @act ++ "Proxy"
-                      loc.proxyName = @act ++ "Proxy"
-                      lhs.subsStmts = (instanceVar @lhs.thisCName)
-                                      `subscribesTo` (instanceVar @name)
-                      lhs.methods= [ methodDecl protectedAbstract Nothing --return
-                                     @loc.methName
-                                     (funcparams $ (@loc.inType, "newValue") :
-                                                    @loc.proxyparam)
-                                     Nothing
-                                   , methodDecl publicFinal Nothing
-                                     "trigger"
-                                     (funcparams [(@loc.inType, "value")])
-                                     (stmts $
-                                       @loc.initProxy ++
-                                       -- call on..Provided
-                                       [BlockStmt (methInv [@loc.methName]
-                                        [varAccess "value"
-                                        ,varAccess @loc.vName])] ++
-                                       @loc.destrProxy)
-                                   ] ++ @loc.proxyClass
-                                     ++ runnerInit True
-                      loc.proxyparam = [(classRef [(Ident @loc.proxyName, [])]
-                                       , @loc.vName)]
-                      loc.initProxy  = proxyOn  @loc.proxyName @loc.vName
-                      loc.destrProxy = proxyOff @loc.proxyName @loc.vName
-                      loc.proxyClass = [proxyClDo @act @loc.proxyName
-                                        (funcparams [(@loc.inType, "value")])]
+  | WhenContext lhs.classImplements = [classRef [(Ident "Controller",[])],
+                                       classRef [(Ident "Subscriber",
+                                                  [ActualType @loc.inType])]]
+                loc.inType = jtype (fromJust $ lookup @name @lhs.tyEnv) 
+                loc.methName = "on" ++ @name ++ "Provided"
+                loc.vName  = "local" ++ @act ++ "Proxy"
+                loc.proxyName = @act ++ "Proxy"
+                lhs.subsStmts = (instanceVar @lhs.thisCName)
+                                `subscribesTo` (instanceVar @name)
+                lhs.methods= [ methodDecl protectedAbstract Nothing --return
+                               @loc.methName
+                               (funcparams $ (@loc.inType, "newValue") :
+                                              @loc.proxyparam)
+                               Nothing
+                             , methodDecl publicFinal Nothing
+                               "trigger"
+                               (funcparams [(@loc.inType, "value")])
+                               (stmts $
+                                 @loc.initProxy ++
+                                 -- call on..Provided
+                                 [BlockStmt (methInv [@loc.methName]
+                                  [varAccess "value"
+                                  ,varAccess @loc.vName])] ++
+                                 @loc.destrProxy)
+                             ] ++ @loc.proxyClass
+                               ++ runnerInit True
+                loc.proxyparam = [(classRef [(Ident @loc.proxyName, [])]
+                                 , @loc.vName)]
+                loc.initProxy  = proxyOn  @loc.proxyName @loc.vName
+                loc.destrProxy = proxyOff @loc.proxyName @loc.vName
+                loc.proxyClass = [proxyClDo @act @loc.proxyName
+                                  (funcparams [(@loc.inType, "value")])]
 
 
 -- | determines the return type of a context.

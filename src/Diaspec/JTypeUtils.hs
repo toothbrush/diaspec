@@ -18,8 +18,10 @@ methInvInit :: [String] -> [Argument] -> VarInit
 methInvInit mname arg = InitExp (methCall mname arg)
 
 funcparams :: [(RefType, String)] -> [FormalParam]
-funcparams = map (\(t,n) -> FormalParam [] (RefType t) False (VarId (Ident n)))
+funcparams = fmparams . (map (\(t,n) -> (RefType t, n)))
 
+fmparams :: [(Type, String)] -> [FormalParam]
+fmparams = map (\(t,n) -> FormalParam [] t False (VarId (Ident n)))
 
 absRunCls :: RefType
 absRunCls = classRef [(Ident "AbstractRunner",[])]
@@ -32,10 +34,10 @@ runnerInit b    = [ MemberDecl (FieldDecl (runnerVarModifs b) (RefType absRunCls
                   , methodDecl (runnerMethModifs b) Nothing
                     "init"
                     (funcparams [(absRunCls, "runner")])
-                    (Just (Block [BlockStmt
-                                  (assign (FieldLhs
-                                           (PrimaryFieldAccess This (Ident "runner")))
-                                   (varAccess "runner"))]))
+                    (stmts [BlockStmt
+                            (assign (FieldLhs
+                                     (PrimaryFieldAccess This (Ident "runner")))
+                             (varAccess "runner"))])
                   ]
   where runnerMethModifs True  = [Final, Protected]
         runnerMethModifs False = [Protected]
@@ -128,11 +130,12 @@ proxyCl proxyName srcTy pMethName methArgs proxyBody =
                   (ConstructorBody Nothing []))
                , methodDecl [Final,Private] Nothing
                  "setAccessible"
-                 [FormalParam [] (PrimType BooleanT) False (VarId (Ident "isAccessible"))]
-                 (Just (Block
+                 (fmparams [(PrimType BooleanT, "isAccessible")])
+                 (stmts
                          [BlockStmt
-                          (assign (FieldLhs (PrimaryFieldAccess This (Ident "isAccessible")))
-                           (ExpName (Name [Ident "isAccessible"])))]))
+                          (assign
+                           (FieldLhs (PrimaryFieldAccess This (Ident "isAccessible")))
+                           (ExpName (Name [Ident "isAccessible"])))])
                , MemberDecl (FieldDecl [Private]
                              (PrimType BooleanT)
                              [VarDecl (VarId (Ident "isAccessible"))
@@ -146,11 +149,12 @@ proxyCl proxyName srcTy pMethName methArgs proxyBody =
                   ))])))
 
 proxyOn proxyName vName =
-   [LocalVars []
-    (RefType (classRef [(Ident proxyName,[])]))
-    [VarDecl (VarId (Ident vName)) (Just (InitExp (InstanceCreation [] (ClassType [(Ident proxyName,[])]) [] Nothing)))]
-   ,BlockStmt
-    (methInv [vName,"setAccessible"] [Lit (Boolean True)])]
+   [ LocalVars [] (RefType (classRef [(Ident proxyName,[])]))
+     [VarDecl (VarId (Ident vName))
+      (Just (InitExp
+             (InstanceCreation [] (ClassType [(Ident proxyName,[])]) [] Nothing)))]
+   , BlockStmt
+     (methInv [vName,"setAccessible"] [Lit (Boolean True)])]
 
 proxyOff proxyName vName =
   [BlockStmt (methInv [vName,"setAccessible"] [Lit (Boolean False)])]
@@ -228,23 +232,22 @@ sourceMethod nm ty =
     ("get"++nm++"Value") [] Nothing
   , methodDecl [Public] (Just$RefType ty)
     "requireValue" []
-    (Just (Block [BlockStmt
-                  (Return
-                   (Just
-                    (methCall ["get"++nm++"Value"] [])))]))
+    (stmts [BlockStmt
+            (Return
+             (Just
+              (methCall ["get"++nm++"Value"] [])))])
   ]
   
 actionMethod :: String -- ^ name of source
              -> RefType -- ^ expected return type.
              -> [Decl]
 actionMethod nm ty =
-  [methodDecl protectedAbstract Nothing 
-   ("do"++nm++"Action") (funcparams [(ty, "value")]) Nothing
-  ,methodDecl [Public] Nothing
-   "trigger" (funcparams [(ty, "value")])
-   (Just (Block [BlockStmt
-                 (methInv ["do"++nm++"Action"]
-                  [varAccess "value"])]))
+  [ methodDecl protectedAbstract Nothing 
+    ("do"++nm++"Action") (funcparams [(ty, "value")]) Nothing
+  , methodDecl [Public] Nothing
+    "trigger" (funcparams [(ty, "value")])
+    (stmts [BlockStmt (methInv ["do"++nm++"Action"]
+                       [varAccess "value"])])
   ]
                                 
 
@@ -258,7 +261,7 @@ initFunc body = methodDecl
      MarkerAnnotation {annName = Name [Ident "Override"]}
     ,Protected] Nothing
     "init" []
-    (Just (Block body))
+    (stmts body)
 
 fieldDecl nm v init = MemberDecl
    (FieldDecl (modifs init)
@@ -277,9 +280,7 @@ deployMethod nm v init =
           (classRef [(Ident$"Abstract"++nm,[])])))
    ("get"++nm++"Instance") []
    (impl init)
-  where impl True  = Just (Block
-                          [BlockStmt (Return (Just
-                                              (varAccess v)))])
+  where impl True  = stmts [BlockStmt (Return (Just (varAccess v)))]
         impl False = Nothing
         modifs True  = [Public]
         modifs False = [Public, Abstract]
@@ -297,3 +298,4 @@ subscribesTo recv pub = [BlockStmt (methInv [pub, "addSubscriber"]
                                 [varAccess recv])]
 
 instanceVar = (++ "_") . map toLower
+
