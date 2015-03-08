@@ -208,41 +208,41 @@ sem ControllerInteraction
                                      (funcparams$ (@loc.inType, "value") : [])
                                      (stmts $
                                        @loc.initProxy ++
-                                       [BlockStmt (ExpStmt
-                                                   (MethodInv (MethodCall (Name [Ident @loc.methName])
-                                                               [ExpName (Name [Ident "value"])
-                                                               ,ExpName (Name [Ident @loc.vName])])))] -- call on..Provided
+                                       [BlockStmt (methInv @loc.methName
+                                        [ExpName (Name [Ident "value"])
+                                        ,ExpName (Name [Ident @loc.vName])])] -- call on..Provided
                                        ++ @loc.destrProxy)
                                    ]
                                    ++ @loc.proxyClass
                                    ++ runnerInit True
-                      loc.proxyparam = [(ClassRefType (ClassType [(Ident @loc.proxyName,[])]), @loc.vName)]
+                      loc.proxyparam = [(ClassRefType (ClassType [(Ident @loc.proxyName
+                                                                 ,[])])
+                                       , @loc.vName)]
                       loc.initProxy  = proxyOn  @loc.proxyName @loc.vName
                       loc.destrProxy = proxyOff @loc.proxyName @loc.vName
-                      loc.proxyClass = [proxyClDo @act @loc.proxyName (funcparams$(@loc.inType, "value"):[])]
+                      loc.proxyClass = [proxyClDo @act @loc.proxyName
+                                        (funcparams$(@loc.inType, "value"):[])]
 
 
 -- | determines the return type of a context.
 sem Publish
-  | AlwaysPublish    lhs.ret    = RefType$ jtype @lhs.ty
+  | AlwaysPublish    lhs.ret    = RefType @loc.naked
+                     loc.naked  = jtype @lhs.ty
                      lhs.notify = BlockStmt
-                                   (ExpStmt
-                                    (MethodInv (MethodCall (Name [Ident "notify"])
-                                                [ExpName (Name [Ident "v"])])))
-  | MaybePublish     lhs.ret    = RefType (ClassRefType (ClassType [(Ident "Maybe",[ActualType$ jtype @lhs.ty])]))
+                                  (methInv "notify" [ExpName (Name [Ident "v"])])
+  | MaybePublish     lhs.ret    = RefType$ wrapMaybe @loc.naked
+                     loc.naked  = jtype @lhs.ty
                      lhs.notify = BlockStmt
                                   (IfThen (InstanceOf (ExpName (Name [Ident "v"])) (ClassRefType (ClassType [(Ident "Just",[])])))
-                                   (ExpStmt
-                                    (MethodInv
-                                     (MethodCall (Name [Ident "notify"])
-                                      [FieldAccess
-                                       (PrimaryFieldAccess
-                                        (Cast
-                                         (RefType
-                                          (ClassRefType
-                                           (ClassType
-                                            [(Ident "Just",[ActualType$ jtype @lhs.ty])])))
-                                         (ExpName (Name [Ident "v"]))) (Ident "just_value"))]))))
+                                   (methInv "notify"
+                                    [FieldAccess
+                                     (PrimaryFieldAccess
+                                      (Cast
+                                       (RefType
+                                        (ClassRefType
+                                         (ClassType
+                                          [(Ident "Just",[ActualType$ jtype @lhs.ty])])))
+                                       (ExpName (Name [Ident "v"]))) (Ident "just_value"))]))
 
 -- | add proxy or not
 sem Get

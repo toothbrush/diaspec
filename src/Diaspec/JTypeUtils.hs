@@ -4,6 +4,12 @@ import Language.Java.Syntax
 import Data.String.Utils (split)
 import Data.Char (toLower)
 
+wrapMaybe :: RefType -> RefType
+wrapMaybe t = ClassRefType (ClassType [(Ident "Maybe",[ActualType t])])
+
+methInv :: String -> [Argument] -> Stmt
+methInv mname args = ExpStmt (MethodInv (MethodCall (Name [Ident mname]) args))
+
 funcparams :: [(RefType, String)] -> [FormalParam]
 funcparams = map (\(t,n) -> FormalParam [] (RefType t) False (VarId (Ident n)))
 
