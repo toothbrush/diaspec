@@ -33,7 +33,8 @@ runnerInit b    = [ MemberDecl (FieldDecl (runnerVarModifs b) (RefType absRunCls
                     "init"
                     (funcparams [(absRunCls, "runner")])
                     (Just (Block [BlockStmt
-                                  (assign (FieldLhs (PrimaryFieldAccess This (Ident "runner")))
+                                  (assign (FieldLhs
+                                           (PrimaryFieldAccess This (Ident "runner")))
                                    (varAccess "runner"))]))
                   ]
   where runnerMethModifs True  = [Final, Protected]

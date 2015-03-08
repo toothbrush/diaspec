@@ -183,9 +183,9 @@ sem ContextInteraction
                                  [lVar (RefType @loc.myType) "v"
                                   (Just (methInvInit [@loc.methName] @get.args))] ++
                                  @get.destrProxy ++
-                                 [ BlockStmt (Return (Just (varAccess "v")))
-                                 ])
-                              ] ++ @get.proxyClass ++ runnerInit True
+                                 [ BlockStmt (Return (Just (varAccess "v")))])
+                              ] ++ @get.proxyClass
+                                ++ runnerInit True
 
 sem ControllerInteraction
     | WhenContext     lhs.classImplements = [classRef [(Ident "Controller",[])],
@@ -199,46 +199,46 @@ sem ControllerInteraction
                                       `subscribesTo` (instanceVar @name)
                       lhs.methods= [ methodDecl protectedAbstract Nothing --return
                                      @loc.methName
-                                     (funcparams $ (@loc.inType, "newValue") :  @loc.proxyparam)
+                                     (funcparams $ (@loc.inType, "newValue") :
+                                                    @loc.proxyparam)
                                      Nothing
                                    , methodDecl publicFinal Nothing
                                      "trigger"
-                                     (funcparams$ (@loc.inType, "value") : [])
+                                     (funcparams [(@loc.inType, "value")])
                                      (stmts $
                                        @loc.initProxy ++
                                        -- call on..Provided
                                        [BlockStmt (methInv [@loc.methName]
                                         [varAccess "value"
-                                        ,varAccess @loc.vName])] 
-                                       ++ @loc.destrProxy)
-                                   ]
-                                   ++ @loc.proxyClass
-                                   ++ runnerInit True
+                                        ,varAccess @loc.vName])] ++
+                                       @loc.destrProxy)
+                                   ] ++ @loc.proxyClass
+                                     ++ runnerInit True
                       loc.proxyparam = [(classRef [(Ident @loc.proxyName, [])]
                                        , @loc.vName)]
                       loc.initProxy  = proxyOn  @loc.proxyName @loc.vName
                       loc.destrProxy = proxyOff @loc.proxyName @loc.vName
                       loc.proxyClass = [proxyClDo @act @loc.proxyName
-                                        (funcparams$(@loc.inType, "value"):[])]
+                                        (funcparams [(@loc.inType, "value")])]
 
 
 -- | determines the return type of a context.
 sem Publish
   | AlwaysPublish    lhs.ret    = RefType @loc.naked
                      loc.naked  = jtype @lhs.ty
-                     lhs.notify = BlockStmt
-                                  (methInv ["notify"] [varAccess "v"])
+                     lhs.notify = BlockStmt (methInv ["notify"] [varAccess "v"])
   | MaybePublish     lhs.ret    = RefType$ wrapMaybe @loc.naked
                      loc.naked  = jtype @lhs.ty
                      lhs.notify = BlockStmt
-                                  (IfThen (InstanceOf (varAccess "v")
+                                  (IfThen ((varAccess "v") `InstanceOf` 
                                            (classRef [(Ident "Just",[])]))
                                    (methInv ["notify"]
                                     [FieldAccess
                                      (PrimaryFieldAccess
                                       (Cast
                                        (RefType
-                                        (classRef [(Ident "Just",[ActualType$ jtype @lhs.ty])]))
+                                        (classRef [(Ident "Just"
+                                                  ,[ActualType$ jtype @lhs.ty])]))
                                        (varAccess "v")) (Ident "just_value"))]))
 
 -- | add proxy or not
@@ -255,6 +255,5 @@ sem Get
               lhs.initProxy  = proxyOn  @loc.proxyName @loc.vName
               lhs.destrProxy = proxyOff @loc.proxyName @loc.vName
               lhs.proxyClass = [proxyClGet @just @loc.proxyName @loc.proxyType]
-              lhs.fparam     = [(classRef [(Ident @loc.proxyName,[])]
-                                 , @loc.vName)]
+              lhs.fparam     = [(classRef [(Ident @loc.proxyName,[])], @loc.vName)]
 
