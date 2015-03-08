@@ -5,7 +5,7 @@ import Data.String.Utils (split)
 import Data.Char (toLower)
 
 wrapMaybe :: RefType -> RefType
-wrapMaybe t = ClassRefType (ClassType [(Ident "Maybe",[ActualType t])])
+wrapMaybe t = classRef [(Ident "Maybe",[ActualType t])]
 
 methCall :: [String] -> [Argument] -> Exp
 methCall mnames args = MethodInv (MethodCall idents args)
@@ -22,7 +22,7 @@ funcparams = map (\(t,n) -> FormalParam [] (RefType t) False (VarId (Ident n)))
 
 
 absRunCls :: RefType
-absRunCls = ClassRefType (ClassType [(Ident "AbstractRunner",[])])
+absRunCls = classRef [(Ident "AbstractRunner",[])]
 
 
 runnerInit :: Bool -- ^ should it be Final?
@@ -43,6 +43,8 @@ runnerInit b    = [ MemberDecl (FieldDecl (runnerVarModifs b) (RefType absRunCls
 
 varAccess :: String -> Exp
 varAccess n = ExpName (Name [Ident n])
+
+classRef nms = ClassRefType (ClassType nms)
 
 pack :: String -> Maybe PackageDecl
 pack n = packagify $ concat ["fr.diaspec.", n, ".generated"]
@@ -144,7 +146,7 @@ proxyCl proxyName srcTy pMethName methArgs proxyBody =
 
 proxyOn proxyName vName =
    [LocalVars []
-    (RefType (ClassRefType (ClassType [(Ident proxyName,[])])))
+    (RefType (classRef [(Ident proxyName,[])]))
     [VarDecl (VarId (Ident vName)) (Just (InitExp (InstanceCreation [] (ClassType [(Ident proxyName,[])]) [] Nothing)))]
    ,BlockStmt
     (methInv [vName,"setAccessible"] [Lit (Boolean True)])]
@@ -162,7 +164,7 @@ clsContext :: Maybe PackageDecl
 clsContext pkg clname i ty =
   clsResource pkg clname
     -- extends Publisher of Ty:
-    (Just (ClassRefType (ClassType [(Ident "Publisher",[ActualType ty])])))
+    (Just (classRef [(Ident "Publisher",[ActualType ty])]))
     i -- implements Context and perhaps subscriber
 
 
@@ -198,7 +200,7 @@ clsAction :: Maybe PackageDecl
 clsAction pkg clname ty =
   clsResource pkg clname
     Nothing -- does not extend anything
-    [ClassRefType (ClassType [(Ident "Action",[ActualType ty])])] -- implements Action
+    [classRef [(Ident "Action",[ActualType ty])]] -- implements Action
     (actionMethod clname ty)
 
 clsSource :: Maybe PackageDecl  -- ^ package name
@@ -208,8 +210,8 @@ clsSource :: Maybe PackageDecl  -- ^ package name
 clsSource pkg clname ty =
   clsResource pkg clname
    (Just -- all sources extend publisher, with their type as Generics param.
-    (ClassRefType (ClassType [(Ident "Publisher", [ActualType ty])])))
-   [ClassRefType  (ClassType [(Ident "Source",    [ActualType ty])])] -- implements Source interface.
+    (classRef [(Ident "Publisher", [ActualType ty])]))
+   [classRef  [(Ident "Source",    [ActualType ty])]] -- implements Source interface.
    (sourceMethod clname ty)
 
 publicFinal       = [Public,    Final   ]
@@ -247,7 +249,7 @@ actionMethod nm ty =
 
 clsRunner pkg = clsResource pkg "Runner"
                 (Just -- extends CommonRuncode
-                 (ClassRefType (ClassType [(Ident "CommonRuncode", [])])))
+                 (classRef [(Ident "CommonRuncode", [])]))
                 [] -- implements nothing
 
 initFunc body = methodDecl
@@ -259,7 +261,7 @@ initFunc body = methodDecl
 
 fieldDecl nm v init = MemberDecl
    (FieldDecl (modifs init)
-    (RefType (ClassRefType (ClassType [(Ident$ "Abstract"++nm,[])])))
+    (RefType (classRef [(Ident$ "Abstract"++nm,[])]))
     [VarDecl (VarId (Ident v))
      (val init)])
    where modifs True  = [Private, Static, Final]
@@ -271,7 +273,7 @@ fieldDecl nm v init = MemberDecl
 deployMethod nm v init = 
   methodDecl (modifs init)
    (Just (RefType
-          (ClassRefType (ClassType [(Ident$"Abstract"++nm,[])]))))
+          (classRef [(Ident$"Abstract"++nm,[])])))
    ("get"++nm++"Instance") []
    (impl init)
   where impl True  = Just (Block

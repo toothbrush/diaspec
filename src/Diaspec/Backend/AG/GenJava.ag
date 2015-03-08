@@ -143,9 +143,9 @@ sem Declaration
 
 -- | influences name of member method, 
 sem ContextInteraction
-  | WhenProvided lhs.classImplements = [ClassRefType (ClassType [(Ident "Context",[])]),
-                                        ClassRefType (ClassType [(Ident "Subscriber",
-                                                                  [ActualType @loc.inType])])]
+  | WhenProvided lhs.classImplements = [classRef [(Ident "Context",[])],
+                                        classRef [(Ident "Subscriber",
+                                                   [ActualType @loc.inType])]]
                  loc.inType = jtype (fromJust $ lookup @name @lhs.tyEnv) 
                  loc.methName = "on" ++ @name ++ "Provided"
                  lhs.subsStmts = (instanceVar @lhs.thisCName) `subscribesTo` (instanceVar @name)
@@ -166,7 +166,7 @@ sem ContextInteraction
                               ]
                               ++ @get.proxyClass
                               ++ runnerInit True
-  | WhenRequired lhs.classImplements = [ClassRefType (ClassType [(Ident "Context",[])])]
+  | WhenRequired lhs.classImplements = [classRef [(Ident "Context",[])]]
                  loc.methName = "when" ++ @lhs.thisCName ++ "Required"
                  loc.myType  = jtype . fromJust $ lookup @lhs.thisCName @lhs.tyEnv
                  lhs.subsStmts = []
@@ -188,9 +188,9 @@ sem ContextInteraction
                               ] ++ @get.proxyClass ++ runnerInit True
 
 sem ControllerInteraction
-    | WhenContext     lhs.classImplements = [ClassRefType (ClassType [(Ident "Controller",[])]),
-                                             ClassRefType (ClassType [(Ident "Subscriber",
-                                                                       [ActualType @loc.inType])])]
+    | WhenContext     lhs.classImplements = [classRef [(Ident "Controller",[])],
+                                             classRef [(Ident "Subscriber",
+                                                        [ActualType @loc.inType])]]
                       loc.inType = jtype (fromJust $ lookup @name @lhs.tyEnv) 
                       loc.methName = "on" ++ @name ++ "Provided"
                       loc.vName  = "local" ++ @act ++ "Proxy"
@@ -214,8 +214,7 @@ sem ControllerInteraction
                                    ]
                                    ++ @loc.proxyClass
                                    ++ runnerInit True
-                      loc.proxyparam = [(ClassRefType (ClassType [(Ident @loc.proxyName
-                                                                 ,[])])
+                      loc.proxyparam = [(classRef [(Ident @loc.proxyName, [])]
                                        , @loc.vName)]
                       loc.initProxy  = proxyOn  @loc.proxyName @loc.vName
                       loc.destrProxy = proxyOff @loc.proxyName @loc.vName
@@ -232,15 +231,14 @@ sem Publish
   | MaybePublish     lhs.ret    = RefType$ wrapMaybe @loc.naked
                      loc.naked  = jtype @lhs.ty
                      lhs.notify = BlockStmt
-                                  (IfThen (InstanceOf (varAccess "v") (ClassRefType (ClassType [(Ident "Just",[])])))
+                                  (IfThen (InstanceOf (varAccess "v")
+                                           (classRef [(Ident "Just",[])]))
                                    (methInv ["notify"]
                                     [FieldAccess
                                      (PrimaryFieldAccess
                                       (Cast
                                        (RefType
-                                        (ClassRefType
-                                         (ClassType
-                                          [(Ident "Just",[ActualType$ jtype @lhs.ty])])))
+                                        (classRef [(Ident "Just",[ActualType$ jtype @lhs.ty])]))
                                        (varAccess "v")) (Ident "just_value"))]))
 
 -- | add proxy or not
@@ -257,6 +255,6 @@ sem Get
               lhs.initProxy  = proxyOn  @loc.proxyName @loc.vName
               lhs.destrProxy = proxyOff @loc.proxyName @loc.vName
               lhs.proxyClass = [proxyClGet @just @loc.proxyName @loc.proxyType]
-              lhs.fparam     = [(ClassRefType (ClassType [(Ident @loc.proxyName,[])])
+              lhs.fparam     = [(classRef [(Ident @loc.proxyName,[])]
                                  , @loc.vName)]
 
