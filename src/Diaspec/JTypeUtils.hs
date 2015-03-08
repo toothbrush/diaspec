@@ -3,6 +3,7 @@ module Diaspec.JTypeUtils where
 import Language.Java.Syntax
 import Data.String.Utils (split)
 import Data.Char (toLower)
+import Control.Arrow (first)
 
 wrapMaybe :: RefType -> RefType
 wrapMaybe t = classRef [(Ident "Maybe",[ActualType t])]
@@ -18,7 +19,7 @@ methInvInit :: [String] -> [Argument] -> VarInit
 methInvInit mname arg = InitExp (methCall mname arg)
 
 funcparams :: [(RefType, String)] -> [FormalParam]
-funcparams = fmparams . (map (\(t,n) -> (RefType t, n)))
+funcparams = fmparams . map (first RefType)
 
 fmparams :: [(Type, String)] -> [FormalParam]
 fmparams = map (\(t,n) -> FormalParam [] t False (VarId (Ident n)))

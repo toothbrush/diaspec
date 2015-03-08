@@ -8,12 +8,16 @@ import Diaspec.JTypeUtils
 }
 
 {
+-- environment to keep track of output types of components.
 type TyEnv = [(String, DType)]
 }
 
 ----------------------------------
 -- Java generation
 ----------------------------------
+
+-------------------------------------------------------------------
+-- Declaring attributes
 
 -- TODO for every reference, check that it's implemented somewhere.
 -- TODO split the two AGs: for pprinting and for compilation.
@@ -24,8 +28,8 @@ attr Specification Declarations
   syn genJ   :: {[CompilationUnit]}
 
 attr Declarations Declaration
-  inh pkg       :: {Maybe PackageDecl}  -- the package name, derived from specs filename
-  inh tyEnv     :: {TyEnv} -- environment to keep track of output types of components.
+  inh pkg       :: {Maybe PackageDecl}  -- the Java package name
+  inh tyEnv     :: {TyEnv}
   syn initStmts :: {[BlockStmt]}
   syn subsStmts :: {[BlockStmt]}
 
@@ -43,7 +47,6 @@ attr Declaration
 
 attr DType
   syn javaType :: {RefType}
-
 
 attr ContextInteraction
   inh ty      :: {DType}
@@ -68,6 +71,8 @@ attr Get
   syn destrProxy :: {[BlockStmt]}
   syn proxyClass :: {[Decl]}
 
+-------------------------------------------------------------------
+-- Semantics
 
 sem Specification
   | S  lhs.genJ   = @ds.genJ 
@@ -230,8 +235,8 @@ sem Publish
   | MaybePublish     lhs.ret    = RefType$ wrapMaybe @loc.naked
                      loc.naked  = jtype @lhs.ty
                      lhs.notify = BlockStmt
-                                  (IfThen ((varAccess "v") `InstanceOf` 
-                                           (classRef [(Ident "Just",[])]))
+                                  (IfThen (varAccess "v" `InstanceOf` 
+                                           classRef [(Ident "Just",[])])
                                    (methInv ["notify"]
                                     [FieldAccess
                                      (PrimaryFieldAccess

@@ -1,3 +1,7 @@
+imports
+{
+import UU.Pretty
+}
 ----------------------------------
 -- Pretty printing
 ----------------------------------
@@ -6,32 +10,43 @@ attr Declaration DType ContextInteraction ControllerInteraction Get Publish
   syn ppRacket :: {PP_Doc}  -- pretty printing (multiline mode)
 
 sem Declaration
-  | Source      lhs.ppRacket = text "(define-source"  >#< text @name >#< @ty.ppRacket >|< text ")"
-  | Action      lhs.ppRacket = text "(define-action"  >#< text @name >#< @ty.ppRacket >|< text ")"
-  | Context     lhs.ppRacket = text "(define-context" >#< text @name >#< @ty.ppRacket >-<
-                                       (indent 2 $ "[" >|< @contr.ppRacket >|< "])")
-  | Controller  lhs.ppRacket = text "(define-controller" >#< text @name >-<
-                                       (indent 2 $ "[" >|< @contr.ppRacket >|< "])")
+  | Source     lhs.ppRacket = text "(define-source"  >#<
+                              text @name >#< @ty.ppRacket >|< text ")"
+  | Action     lhs.ppRacket = text "(define-action"  >#<
+                              text @name >#< @ty.ppRacket >|< text ")"
+  | Context    lhs.ppRacket = text "(define-context" >#<
+                              text @name >#< @ty.ppRacket >-<
+                              (indent 2 $ @contr.ppRacket >|< ")")
+  | Controller lhs.ppRacket = text "(define-controller" >#<
+                              text @name >-<
+                              (indent 2 $ @contr.ppRacket >|< ")")
 
 
 sem Publish
-  | AlwaysPublish    lhs.ppRacket = text $ show @self
-  | MaybePublish     lhs.ppRacket = text $ show @self
+  | AlwaysPublish lhs.ppRacket = text $ show @self
+  | MaybePublish  lhs.ppRacket = text $ show @self
 
 sem DType
   | DBool    lhs.ppRacket = text "Boolean"
   | DInt     lhs.ppRacket = text "Integer"
-  | DPicture lhs.ppRacket = text $ show @self
-  | DString  lhs.ppRacket = text $ show @self
+  | DPicture lhs.ppRacket = text "Picture"
+  | DString  lhs.ppRacket = text "String"
 
 sem ControllerInteraction
-  | WhenContext     lhs.ppRacket = text "when-provided" >#< text @name
-                                   >#< text "do" >#< text @act
+  | WhenContext     lhs.ppRacket = formatCtr $
+                                   text "when-provided" >#<
+                                   text @name >#< text "do" >#< text @act
 sem ContextInteraction
-  | WhenRequired    lhs.ppRacket = text "when-required" >#< @get.ppRacket
-  | WhenProvided    lhs.ppRacket = text "when-provided" >#< text @name
-                                   >#< @get.ppRacket >-< @pub.ppRacket
+  | WhenRequired    lhs.ppRacket = formatCtr $
+                                   text "when-required" >#< @get.ppRacket
+  | WhenProvided    lhs.ppRacket = formatCtr $
+                                   text "when-provided" >#< text @name >#<
+                                   @get.ppRacket >-< @pub.ppRacket
 
 sem Get
   | Nothing   lhs.ppRacket = empty
   | Just      lhs.ppRacket = text "get" >#< text @just
+
+{
+formatCtr c = "[" >|< c >|< "]"
+}

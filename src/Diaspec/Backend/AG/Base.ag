@@ -1,9 +1,3 @@
-imports
-{
-import UU.Pretty
-import Language.Java.Syntax
-}
-
 -- possible types for our components
 data DType
      | DBool
