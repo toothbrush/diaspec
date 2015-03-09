@@ -12,7 +12,7 @@ author:              Paul van der Walt
 maintainer:          paul@denknerd.org
 copyright:           Paul van der Walt <paul@denknerd.org>
 category:            Language
-build-type:          Simple
+build-type:          Custom
 extra-source-files:  example/*.spec
                    , README.md
                    , uuagc_options
