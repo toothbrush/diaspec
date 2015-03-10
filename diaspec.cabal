@@ -13,7 +13,7 @@ maintainer:          paul@denknerd.org
 copyright:           Paul van der Walt <paul@denknerd.org>
 category:            Language
 build-type:          Custom
-extra-source-files:  example/*.spec
+extra-source-files:  examples/*.spec
                    , README.md
                    , uuagc_options
                    , src/Diaspec/Backend/*.ag
