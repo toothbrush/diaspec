@@ -35,7 +35,7 @@ executable diaspec
                      , Diaspec.Sort
                      , Diaspec.JTypeUtils
   other-extensions:    CPP
-  build-depends:       base >=4.7 && <4.8
+  build-depends:       base >=4.7 && <4.9
                      , array >=0.5 && <0.6
                      -- this is to prevent cmdargs pulling in an old version of transformers
                      , mtl >= 2.2, transformers >= 0.4
